@@ -26,14 +26,10 @@ import javax.vecmath.*;
 import java.util.concurrent.*;
 import java.util.*;
 
-import java.awt.*;
-
 public class CPUAlgebraicSurfaceRenderer extends AlgebraicSurfaceRenderer
 {
-    volatile Thread drawThread;
-    ThreadGroup tg; // just to know, which threads are active and do rendering
     ExecutorService threadPoolExecutor;
-    Object queryLock = new Object();
+    List< FutureTask< Boolean > > renderingTasks; 
     
     synchronized DrawcallStaticData collectDrawCallStaticData( int[] colorBuffer, int width, int height )
     {
@@ -111,21 +107,19 @@ public class CPUAlgebraicSurfaceRenderer extends AlgebraicSurfaceRenderer
 
         this.setAntiAliasingMode( AntiAliasingMode.ADAPTIVE_SUPERSAMPLING );
         this.setAntiAliasingPattern( AntiAliasingPattern.OG_4x4 );
-        this.tg = new ThreadGroup( "Group of rendering threads of " + this );
-    }
-
-    ExecutorService createExecutorService()
-    {
+        
+    	final ThreadGroup tg = new ThreadGroup( "Group of rendering threads of " + this );
         class PriorityThreadFactory implements ThreadFactory
         {
             public Thread newThread(Runnable r) {
-                Thread t = new Thread( CPUAlgebraicSurfaceRenderer.this.tg, r);
+                Thread t = new Thread( tg, r );
                 t.setPriority( Thread.MIN_PRIORITY );
                 return t;
             }
-        }
-        //return Executors.newFixedThreadPool( 2 * Runtime.getRuntime().availableProcessors(), new PriorityThreadFactory() );
-        return Executors.newSingleThreadExecutor( new PriorityThreadFactory() );
+        }   
+        
+        this.threadPoolExecutor = Executors.newFixedThreadPool( 2 * Runtime.getRuntime().availableProcessors(), new PriorityThreadFactory() );     
+        this.renderingTasks = new LinkedList< FutureTask< Boolean > >();
     }
 
     public enum AntiAliasingMode
@@ -167,23 +161,24 @@ public class CPUAlgebraicSurfaceRenderer extends AlgebraicSurfaceRenderer
     		return;
     	
     	DrawcallStaticData dcsd = collectDrawCallStaticData( colorBuffer, width, height );
-    	synchronized( this.queryLock )
-    	{
-	        this.threadPoolExecutor = createExecutorService();
-	        this.drawThread = Thread.currentThread();
-    	}
     	
         int xStep = width / Math.min( width, Math.max( 2, Runtime.getRuntime().availableProcessors() ) );
         int yStep = height / Math.min( height, 3 );//Math.max( 2, Runtime.getRuntime().availableProcessors() ) );
 
         boolean success = true;
-        try
+        
+        LinkedList< FutureTask< Boolean > > tasks = new LinkedList< FutureTask< Boolean > >();
+    	for( int x = 0; x < width; x += xStep )
+            for( int y = 0; y < height; y += yStep )
+            	tasks.add( new FutureTask< Boolean >( new RenderingTask( dcsd, x, y, Math.min( x + xStep, width - 1 ), Math.min( y + yStep, height - 1 ) ) ) );
+        
+        renderingTasks = tasks;
+        
+		try
         {
-        	LinkedList< Future< Boolean > > tasks = new LinkedList< Future< Boolean > >();
-            for( int x = 0; x < width; x += xStep )
-                for( int y = 0; y < height && !Thread.interrupted(); y += yStep )
-                    tasks.add( threadPoolExecutor.submit( new RenderingTask( dcsd, x, y, Math.min( x + xStep, width - 1 ), Math.min( y + yStep, height - 1 ) ) ) );
-            for( Future< Boolean > task : tasks )
+            for( FutureTask< Boolean > task : tasks )
+            	threadPoolExecutor.execute( task );
+        	for( FutureTask< Boolean > task : tasks )
             	success = success && task.get();
         }
         catch( ExecutionException ie )
@@ -198,40 +193,20 @@ public class CPUAlgebraicSurfaceRenderer extends AlgebraicSurfaceRenderer
         {
         	success = false;
         }
+        catch( CancellationException ree )
+        {
+        	success = false;
+        }
         finally
         {
-        	synchronized( this.queryLock )
-        	{
-	        	success = success && !this.threadPoolExecutor.isShutdown();
-				SecurityManager security = System.getSecurityManager();
-				if( security != null ) {
-					try { // this failes for applets
-						security.checkPermission( new RuntimePermission( "modifyThread" ) );
-						this.threadPoolExecutor.shutdownNow();
-					}
-					catch( SecurityException se )
-					{
-					}	
-				}
-	            this.threadPoolExecutor = null;
-	            this.drawThread = null;
-	            this.threadPoolExecutor = null;
-	            if( !success || Thread.interrupted() )
+        	if( !success || Thread.interrupted() )
 	            	throw new RenderingInterruptedException( "Rendering interrupted" );
-        	}
         }
     }
 
     public void stopDrawing()
     {
-    	synchronized( this.queryLock )
-    	{
-	        Thread tmp_thread = this.drawThread;
-	        ExecutorService tmp_threadPoolExecutor = this.threadPoolExecutor;
-	        if( tmp_threadPoolExecutor != null )
-	        	tmp_threadPoolExecutor.shutdownNow();
-	        if( tmp_thread != null )
-	            tmp_thread.interrupt();
-    	}
+    	for( FutureTask< Boolean > f : renderingTasks )
+    		f.cancel( true );
     }
 }

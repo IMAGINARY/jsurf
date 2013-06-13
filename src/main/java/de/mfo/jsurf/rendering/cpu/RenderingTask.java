@@ -58,6 +58,11 @@ public class RenderingTask implements Callable<Boolean>
         {
             t.printStackTrace();
         }
+        finally
+        {
+        	//Thread.interrupted(); // clear the interruption flag
+        }
+        
         return false;
     }
 
@@ -74,6 +79,7 @@ public class RenderingTask implements Callable<Boolean>
     }
 
     protected void render()
+    	throws RenderingInterruptedException
     {
         switch( dcsd.antiAliasingPattern )
         {
@@ -91,10 +97,10 @@ public class RenderingTask implements Callable<Boolean>
                     double v = v_start + y * v_incr;
                     ColumnSubstitutor scs = dcsd.surfaceRowSubstitutor.setV( v );
                     ColumnSubstitutorForGradient gcs = dcsd.gradientRowSubstitutor.setV( v );
-                
+            
                     for( int x = 0; x < internal_width; x++ )
                     {
-                        if( Thread.interrupted() )
+                        if( Thread.currentThread().isInterrupted() )
                             throw new RenderingInterruptedException();
                         double u = u_start + x * u_incr;
                         dcsd.colorBuffer[ dcsd.width * ( yStart + y ) + xStart + x ] = tracePolynomial( scs, gcs, u, v ).get().getRGB();
@@ -131,7 +137,7 @@ public class RenderingTask implements Callable<Boolean>
 
                     for( int x = 0; x < internal_width; ++x )
                     {
-                        if( Thread.interrupted() )
+                        if( Thread.currentThread().isInterrupted() )
                             throw new RenderingInterruptedException();
                         
                         // current position on viewing plane
@@ -172,7 +178,7 @@ public class RenderingTask implements Callable<Boolean>
             finalColor = new Color3f();
             for( AntiAliasingPattern.SamplingPoint sp : aap )
             {
-                if( Thread.interrupted() )
+                if( Thread.currentThread().isInterrupted() )
                     throw new RenderingInterruptedException();
 
                 Color3f ss_color;
