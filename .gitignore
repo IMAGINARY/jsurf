@@ -4,6 +4,11 @@
 # build files
 build
 
+# Eclipse project files
+.classpath
+.project
+.settings
+
 # OS generated files #
 ######################
 .DS_Store
