@@ -1,23 +1,21 @@
 group = 'de.mfo.jsurf'
-version = '0.1.1'
+version = '0.1.2'
 
 apply plugin: 'application'
 apply plugin: 'java'
 apply plugin: 'eclipse'
-apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 targetCompatibility = 1.6
 sourceCompatibility = 1.6
 
 repositories {
     mavenCentral()
-    maven {
-        url "http://download.tuxfamily.org/arakhne/maven"
-    }
+    maven { url "https://raw.github.com/IMAGINARY/maven-repository/master/" }
 }
 
 dependencies {
-    compile group: 'javax', name: 'vecmath', version: '1.5.2'
+    compile group: 'javax', name: 'vecmath', version: '1.2.0-hiranabe'
     compile 'org.antlr:antlr-runtime:3.4@jar'
     compile 'commons-cli:commons-cli:1.2'
 }
@@ -26,16 +24,26 @@ task wrapper(type: Wrapper) {
 	gradleVersion = '1.12'
 }
 
-uploadArchives {
-    repositories.mavenDeployer {
-	// TODO: change to official maven repo
-	repository( url: "file:///media/DATA/IMAGINARY/maven-repository" )
+task sourceJar(type: Jar) {
+        from sourceSets.main.allJava
+}
 
-	// workflow for deploying: 
-	// clone/pull https://github.com/IMAGINARY/maven-repository.git into '/media/DATA/IMAGINARY/maven-repository' 
-	// gradle uploadArchives
-	// in '/media/DATA/IMAGINARY/maven-repository': git push origin master
-    }
+publishing {
+        publications {
+                mavenJava(MavenPublication) {
+                        from components.java
+
+                        artifact sourceJar {
+                                classifier "sources"
+                        }
+                }
+        }
+        repositories {
+                maven {
+                        // change if necessary
+                        url "$projectDir/../maven-repository"
+                }
+        }
 }
 
 mainClassName = "de.mfo.jsurf.Main"
