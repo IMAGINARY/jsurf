@@ -6,8 +6,8 @@ apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-targetCompatibility = 1.6
-sourceCompatibility = 1.6
+targetCompatibility = 1.7
+sourceCompatibility = 1.7
 
 repositories {
     mavenCentral()
@@ -18,6 +18,7 @@ dependencies {
     compile group: 'javax', name: 'vecmath', version: '1.2.0-hiranabe'
     compile 'org.antlr:antlr-runtime:3.4@jar'
     compile 'commons-cli:commons-cli:1.2'
+    testCompile group: 'junit', name: 'junit', version: '4.11'
 }
 
 task wrapper(type: Wrapper) {
