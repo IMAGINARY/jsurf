@@ -147,6 +147,22 @@ public class XYZPolynomial
             result.append( "x^" + xExp + "y^" + yExp + "z^" + zExp );
             return result.toString();
         }
+
+        public boolean equals( Term t )
+        {
+            return this.coeff == t.coeff &&
+                this.xExp == t.xExp &&
+                this.yExp == t.yExp &&
+                this.zExp == t.zExp;
+        }
+
+        public int hashCode()
+        {
+            return ( ( int ) ( Double.doubleToRawLongBits( this.coeff ) % 0x00000000FFFFFFFFL ) ) &
+                ( ( int ) this.xExp ) &
+                ( ( int ) this.xExp ) << 8 &
+                ( ( int ) this.xExp ) << 16;
+        }
     }
 
     private Term[] terms; // ordered list of terms, such that terms[ i ].lexCompare( terms[ i + 1 ] ) < 0
@@ -158,6 +174,8 @@ public class XYZPolynomial
     private byte degree;
     private int numXyTerms; // number of terms in result of evaluateZ
     private boolean isCompact = false;
+    
+    private static final Term[] dummyTermArray = new Term[ 0 ];
 
     public XYZPolynomial()
     {
@@ -270,7 +288,7 @@ public class XYZPolynomial
         while( i2 < terms2.length )
             resultTerms.add( new Term( terms2 [ i2++ ] ) );
 
-        return new XYZPolynomial( resultTerms.toArray( this.terms ) );
+        return new XYZPolynomial( resultTerms.toArray( XYZPolynomial.dummyTermArray ) );
     }
 
     public XYZPolynomial mult( XYZPolynomial p )
@@ -300,7 +318,7 @@ public class XYZPolynomial
             for( int i = 0; i < p2.terms.length; i++ )
                 resultTerms.add( t1.mult( p2.terms[ i ] ) );
         }
-        return new XYZPolynomial( collect( resultTerms.toArray( new Term[ 0 ] ), true ) );
+        return new XYZPolynomial( collect( resultTerms.toArray( XYZPolynomial.dummyTermArray ), true ) );
     }
 
 //    // standard polynomial multiplication (faster, but less numerically stable)
@@ -693,7 +711,7 @@ public class XYZPolynomial
             for( Term e : expandedTerm.terms )
                 terms.add( e );
         }
-        XYZPolynomial result = new XYZPolynomial( collect( terms.toArray( new Term[ 0 ] ), true ) );
+        XYZPolynomial result = new XYZPolynomial( collect( terms.toArray( XYZPolynomial.dummyTermArray ), true ) );
         return result;
     }
 */
@@ -724,7 +742,7 @@ public class XYZPolynomial
 
             if( resultTerms.size() == 0 )
                 resultTerms.add( new Term( 0.0, (byte) 0, (byte) 0, (byte) 0 ) );
-            return resultTerms.toArray( new Term[ 0 ] );
+            return resultTerms.toArray( XYZPolynomial.dummyTermArray );
         }
         else
         {
@@ -775,5 +793,23 @@ public class XYZPolynomial
         for( Term t : this.terms )
             a[ t.zExp ][ t.yExp ][ t.xExp ] = t.coeff;
         return a;
+    }
+
+    public boolean equals( XYZPolynomial p )
+    {
+        if( this.terms.length != p.terms.length )
+            return false;
+        for( int i = 0; i < this.terms.length; ++i )
+            if( !this.terms[ i ].equals( p.terms[ i ] ) )
+                return false;
+        return true;
+    }
+
+    public int hashCode()
+    {
+        int c = 0;
+        for( int i = 0; i < this.terms.length; ++i )
+            c += this.terms[ i ].hashCode();
+        return c;
     }
 }

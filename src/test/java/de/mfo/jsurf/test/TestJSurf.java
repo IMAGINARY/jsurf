@@ -4,6 +4,7 @@ import org.junit.*;
 
 import de.mfo.jsurf.rendering.cpu.CPUAlgebraicSurfaceRenderer;
 import de.mfo.jsurf.rendering.RenderingInterruptedException;
+import de.mfo.jsurf.algebra.*;
 import de.mfo.jsurf.util.FileFormat;
 import java.util.Properties;
 import javax.swing.SwingWorker;
@@ -53,5 +54,13 @@ public class TestJSurf
     	System.out.println( "Render method finished after " + t + "ms" );
 
 		Assert.assertTrue( "stopDrawing must interrupt and stop the rendering process", t < 200 );
+	}
+
+	@Test
+	public void XYZPolynomialAddShouldNotAffectMethodParameters()
+	{
+		XYZPolynomial X = new XYZPolynomial( XYZPolynomial.X );
+		XYZPolynomial.X.add( XYZPolynomial.X );
+		Assert.assertTrue( "XYZPolynomial.add changes values of its parameters", X.equals( XYZPolynomial.X ) );
 	}
 }
