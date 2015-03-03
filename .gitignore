@@ -3,6 +3,7 @@
 
 # build files
 build
+bin
 
 # Eclipse project files
 .classpath
