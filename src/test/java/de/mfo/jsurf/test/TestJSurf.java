@@ -63,4 +63,14 @@ public class TestJSurf
 		XYZPolynomial.X.add( XYZPolynomial.X );
 		Assert.assertTrue( "XYZPolynomial.add changes values of its parameters", X.equals( XYZPolynomial.X ) );
 	}
+	
+	@Test
+	public void testDivisionInParser()
+	{
+	    PolynomialOperation div = new PolynomialDoubleDivision( new PolynomialVariable( PolynomialVariable.Var.x ), new DoubleValue( 2.0 ) );
+	    PolynomialOperation mult = new PolynomialMultiplication( new PolynomialVariable( PolynomialVariable.Var.x ), new DoubleValue( 0.5 ) );
+	    XYZPolynomial expanded_div = div.accept( new Expand(), ( Void ) null );
+	    XYZPolynomial expanded_mult = mult.accept( new Expand(), ( Void ) null );	    
+	    Assert.assertTrue( "x/2.0 and x*0.5 should both expand to 0.5x, but x/2.0 expands to " + expanded_div + " and x*0.5 expands to " + expanded_mult, expanded_div.equals( expanded_mult ) );
+	}
 }

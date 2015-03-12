@@ -64,7 +64,7 @@ public class Expand extends AbstractVisitor< XYZPolynomial, Void >
         XYZPolynomial dividend = pdd.dividend.accept( this,( Void ) null );
         double divisor = pdd.divisor.accept( this.valueCalculator, ( Void ) null );
 
-        return dividend.mult( divisor );
+        return dividend.mult( 1.0 / divisor );
     }
     
     public XYZPolynomial visit( PolynomialVariable pv, Void param )
