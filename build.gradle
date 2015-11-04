@@ -17,7 +17,7 @@ repositories {
 dependencies {
     compile group: 'javax', name: 'vecmath', version: '1.2.0-hiranabe'
     compile 'org.antlr:antlr-runtime:3.4@jar'
-    compile 'commons-cli:commons-cli:1.2'
+    compile 'commons-cli:commons-cli:1.3'
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
 
@@ -48,6 +48,7 @@ publishing {
 }
 
 mainClassName = "de.mfo.jsurf.Main"
+applicationDefaultJvmArgs = [ "-D${project.group}.version=$project.version" ]
 
 run {
 	args = [ "-s", "512", "examples/record_kummerquartic.jsurf" ]
