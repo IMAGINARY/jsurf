@@ -29,6 +29,14 @@ task sourceJar(type: Jar) {
         from sourceSets.main.allJava
 }
 
+jar {
+    manifest {
+        attributes( "Implementation-Title": project.group,
+                   "Implementation-Version": project.version,
+                   "Implementation-Vendor": "Mathematisches Forschungsinstitut Oberwolfach" )
+    }
+}
+
 publishing {
         publications {
                 mavenJava(MavenPublication) {
@@ -48,7 +56,6 @@ publishing {
 }
 
 mainClassName = "de.mfo.jsurf.Main"
-applicationDefaultJvmArgs = [ "-D${project.group}.version=$project.version" ]
 
 run {
 	args = [ "-s", "512", "examples/record_kummerquartic.jsurf" ]

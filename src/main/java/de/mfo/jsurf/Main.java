@@ -100,7 +100,7 @@ public class Main {
 
 			if( cmd.hasOption( "version" ) )
 			{
-    			System.out.println( "This is jsurf version " + System.getProperty( "de.mfo.jsurf.version", "unknown" ) + "." );
+    			System.out.println( "This is jsurf version " + Main.class.getPackage().getImplementationVersion() + "." );
     			return;
     		}
 
