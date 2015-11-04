@@ -11,6 +11,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - fixed division of univariate polynomials by constants
 
+### Added
+- change log
+
 ## [0.1.3] - 2015-03-03
 ### Added
 - unit tests via JUnit
