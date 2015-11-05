@@ -75,8 +75,8 @@ public class Main {
     	
     	Options options = new Options();
     	
-		options.addOption( Option.builder().longOpt( "help" ).desc( "display this help text" ).build() );
-		options.addOption( Option.builder().longOpt( "version" ).desc( "print program version" ).build() );
+        options.addOption( OptionBuilder.withLongOpt( "help" ).withDescription( "display this help text" ).create() );
+		options.addOption( OptionBuilder.withLongOpt( "version" ).withDescription( "print program version" ).create() );
     	options.addOption("s","size", true, "width (and height) of a image (default: " + size + ")");
     	options.addOption("q","quality",true,"quality of the rendering: 0 (low), 1 (medium, default), 2 (high), 3 (extreme)");
     	options.addOption("o","output",true,"output PNG into this file (- means standard output. Use ./- to denote a file literally named -.)");
