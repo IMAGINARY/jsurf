@@ -5,7 +5,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased][unreleased]
 
 - added long options --help and --version
-- updated to Apache commons-cli 1.3.1
 
 ## [0.1.4] - 2015-09-07
 ### Changed
