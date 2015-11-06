@@ -39,6 +39,8 @@ import de.mfo.jsurf.util.FileFormat;
 
 public class Main {	
 	
+    public static final String jsurf_progname = "jsurf";
+
     static int size = 100;
     static AntiAliasingMode aam;
     static AntiAliasingPattern aap;
@@ -83,8 +85,8 @@ public class Main {
 
     	CommandLineParser parser = new PosixParser();
 		HelpFormatter formatter = new HelpFormatter();
-    	String cmd_line_syntax = "jsurf [options] jsurf_file\n\n";
-    	String help_header = "jsurf is a renderer for real algebraic surfaces.\n" +
+    	String cmd_line_syntax = jsurf_progname + " [options] jsurf_file\n\n";
+    	String help_header = jsurf_progname + " is a renderer for real algebraic surfaces.\n" +
 			"If - is specified as a filename, the jsurf file is read from standard input. " +
     		"Use ./- to denote a file literally named -.\n\n";
     	String help_footer = "";
