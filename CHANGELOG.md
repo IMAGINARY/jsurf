@@ -4,7 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
-- added long options --help and --version
+## [0.2.0] - 2015-11-09
+### Added
+- long options --help and --version
 
 ## [0.1.4] - 2015-09-07
 ### Changed
