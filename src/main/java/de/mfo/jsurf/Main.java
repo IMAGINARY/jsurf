@@ -81,14 +81,13 @@ public class Main {
 		options.addOption( OptionBuilder.withLongOpt( "version" ).withDescription( "print program version" ).create() );
     	options.addOption("s","size", true, "width (and height) of a image (default: " + size + ")");
     	options.addOption("q","quality",true,"quality of the rendering: 0 (low), 1 (medium, default), 2 (high), 3 (extreme)");
-    	options.addOption("o","output",true,"output PNG into this file (- means standard output. Use ./- to denote a file literally named -.)");
+    	options.addOption("o","output",true,"output PNG into this file (- means standard output)");
 
     	CommandLineParser parser = new PosixParser();
 		HelpFormatter formatter = new HelpFormatter();
     	String cmd_line_syntax = jsurf_progname + " [options] jsurf_file\n\n";
     	String help_header = jsurf_progname + " is a renderer for real algebraic surfaces.\n" +
-			"If - is specified as a filename, the jsurf file is read from standard input. " +
-    		"Use ./- to denote a file literally named -.\n\n";
+    	    "If - is specified as a filename, the jsurf file is read from standard input.\n\n";
     	String help_footer = "";
     	try
     	{
@@ -102,7 +101,7 @@ public class Main {
 
 			if( cmd.hasOption( "version" ) )
 			{
-    			System.out.println( "This is jsurf version " + Main.class.getPackage().getImplementationVersion() + "." );
+				System.out.println( Main.class.getPackage().getImplementationVersion() );
     			return;
     		}
 
