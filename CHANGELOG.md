@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
+### Changed
+- default to headless instead of graphical operation
+
+## Added
+- new command line option --gui
+
+## Fixed
+- background threads do not prevent application from exiting anymore
 
 ## [0.2.0] - 2015-11-09
 ### Added
