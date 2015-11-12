@@ -196,7 +196,6 @@ public class Main {
     			else
     				os = new FileOutputStream( new File( output_filename ) );
     			javax.imageio.ImageIO.write( bi, "png", os );
-        		System.exit( 0 );
     		}
     		catch( Exception e )
     		{

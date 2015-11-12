@@ -113,6 +113,7 @@ public class CPUAlgebraicSurfaceRenderer extends AlgebraicSurfaceRenderer
         {
             public Thread newThread(Runnable r) {
                 Thread t = new Thread( tg, r );
+                t.setDaemon( true );
                 t.setPriority( Thread.MIN_PRIORITY );
                 return t;
             }
