@@ -72,22 +72,23 @@ public class Main {
 	 */
 	public static void main(String[] args) {  
 		
-    	String jsurf_filename = "";
+    	String jsurf_filename = null;
     	String output_filename = null;
-    	
+        boolean show_gui = false;
+
     	Options options = new Options();
     	
-        options.addOption( OptionBuilder.withLongOpt( "help" ).withDescription( "display this help text" ).create() );
-		options.addOption( OptionBuilder.withLongOpt( "version" ).withDescription( "print program version" ).create() );
-    	options.addOption("s","size", true, "width (and height) of a image (default: " + size + ")");
+        options.addOption( OptionBuilder.withLongOpt( "help" ).withDescription( "display this help text and exit" ).create() );
+		options.addOption( OptionBuilder.withLongOpt( "version" ).withDescription( "print program version and exit" ).create() );
+    	options.addOption("s","size", true, "image width and height (default: " + size + ")");
     	options.addOption("q","quality",true,"quality of the rendering: 0 (low), 1 (medium, default), 2 (high), 3 (extreme)");
-    	options.addOption("o","output",true,"output PNG into this file (- means standard output)");
+        options.addOption( OptionBuilder.withLongOpt( "gui" ).withDescription( "display the rendering (png_output becomes optional)" ).create() );
 
     	CommandLineParser parser = new PosixParser();
 		HelpFormatter formatter = new HelpFormatter();
-    	String cmd_line_syntax = jsurf_progname + " [options] jsurf_file\n\n";
+    	String cmd_line_syntax = jsurf_progname + " [options] jsurf_input png_output\n\n";
     	String help_header = jsurf_progname + " is a renderer for real algebraic surfaces.\n" +
-    	    "If - is specified as a filename, the jsurf file is read from standard input.\n\n";
+    	    "Specify files as '-' for standard input and output.";
     	String help_footer = "";
     	try
     	{
@@ -104,9 +105,6 @@ public class Main {
 				System.out.println( Main.class.getPackage().getImplementationVersion() );
     			return;
     		}
-
-    		if( cmd.hasOption( "output" ) )
-    			output_filename = cmd.getOptionValue("output");
 
     		if( cmd.hasOption("size") )
     			size = Integer.parseInt( cmd.getOptionValue("size") );
@@ -132,14 +130,20 @@ public class Main {
 		    	aam = AntiAliasingMode.ADAPTIVE_SUPERSAMPLING;
 		    	aap = AntiAliasingPattern.QUINCUNX;
 			}
-			
-			if( cmd.getArgs().length > 0)
-    			jsurf_filename = cmd.getArgs()[ 0 ];
-			else
-			{
+
+            show_gui = cmd.hasOption( "gui" );
+
+			if( cmd.getArgs().length == 0 || ( cmd.getArgs().length == 1 && !show_gui ) || cmd.getArgs().length > 2 )
+            {
     			formatter.printHelp( cmd_line_syntax, help_header, options, help_footer );
-    			return;
+    			System.exit( -1 );
     		}
+			else
+            {
+                jsurf_filename = cmd.getArgs()[ 0 ];
+                if( cmd.getArgs().length > 1 )
+                    output_filename = cmd.getArgs()[ 1 ];
+            }
     	}
     	catch( ParseException exp ) {
     	    System.out.println( "Unexpected exception:" + exp.getMessage() );
@@ -196,6 +200,8 @@ public class Main {
     			else
     				os = new FileOutputStream( new File( output_filename ) );
     			javax.imageio.ImageIO.write( bi, "png", os );
+                os.flush();
+                os.close();
     		}
     		catch( Exception e )
     		{
@@ -204,7 +210,8 @@ public class Main {
         		System.exit( -4 );
     		}
     	}
-    	else
+
+        if( show_gui )
     	{
     		// display the image in a window 
     		final String window_title = "jsurf: " + jsurf_filename;

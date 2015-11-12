@@ -58,5 +58,5 @@ publishing {
 mainClassName = "de.mfo.jsurf.Main"
 
 run {
-	args = [ "-s", "512", "examples/record_kummerquartic.jsurf" ]
+	args = [ "-s", "512", "--gui", "examples/record_kummerquartic.jsurf" ]
 }
