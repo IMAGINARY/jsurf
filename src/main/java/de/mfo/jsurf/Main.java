@@ -82,7 +82,8 @@ public class Main {
 		options.addOption( OptionBuilder.withLongOpt( "version" ).withDescription( "print program version and exit" ).create() );
     	options.addOption("s","size", true, "image width and height (default: " + size + ")");
     	options.addOption("q","quality",true,"quality of the rendering: 0 (low), 1 (medium, default), 2 (high), 3 (extreme)");
-        options.addOption( OptionBuilder.withLongOpt( "gui" ).withDescription( "display the rendering (png_output becomes optional)" ).create() );
+        if( !java.awt.GraphicsEnvironment.isHeadless() )
+            options.addOption( OptionBuilder.withLongOpt( "gui" ).withDescription( "display the rendering (png_output becomes optional)" ).create() );
 
     	CommandLineParser parser = new PosixParser();
 		HelpFormatter formatter = new HelpFormatter();
