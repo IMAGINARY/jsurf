@@ -11,11 +11,10 @@ sourceCompatibility = 1.7
 
 repositories {
     mavenCentral()
-    maven { url "https://raw.github.com/IMAGINARY/maven-repository/master/" }
 }
 
 dependencies {
-    compile group: 'javax', name: 'vecmath', version: '1.2.0-hiranabe'
+    compile group: 'javax.vecmath', name: 'vecmath', version: '1.5.2'
     compile 'org.antlr:antlr-runtime:3.4@jar'
     compile 'commons-cli:commons-cli:1.2'
     testCompile group: 'junit', name: 'junit', version: '4.11'
