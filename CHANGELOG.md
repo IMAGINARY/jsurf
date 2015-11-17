@@ -3,8 +3,12 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
+
+## [0.3.0] - 2015-11-17
 ### Changed
 - default to headless instead of graphical operation
+- use Sun's javax.vecmath 1.5.2 implementation again
+  (GPLv2 w/ classpath exception)
 
 ## Added
 - new command line option --gui
@@ -60,7 +64,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - improved scheduling of parallel rendering tasks
 
-[unreleased]: https://github.com/IMAGINARY/jsurf/compare/v0.1.4...HEAD
+[unreleased]: https://github.com/IMAGINARY/jsurf/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/IMAGINARY/jsurf/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/IMAGINARY/jsurf/compare/v0.1.4...v0.2.0
 [0.1.4]: https://github.com/IMAGINARY/jsurf/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/IMAGINARY/jsurf/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/IMAGINARY/jsurf/compare/v0.1.1...v0.1.2
