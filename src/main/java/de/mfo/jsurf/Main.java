@@ -33,6 +33,15 @@ import javax.swing.SwingUtilities;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.cli.*;
 
+import javax.imageio.*;
+import javax.imageio.metadata.*;
+import javax.imageio.stream.*;
+
+import java.util.Date;
+import java.util.TimeZone;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
 import de.mfo.jsurf.rendering.cpu.AntiAliasingPattern;
 import de.mfo.jsurf.rendering.cpu.CPUAlgebraicSurfaceRenderer;
 import de.mfo.jsurf.rendering.cpu.CPUAlgebraicSurfaceRenderer.AntiAliasingMode;
@@ -43,6 +52,7 @@ public class Main {
     public static final String jsurf_progname = "jsurf";
 
     static int size = 512;
+    static int quality = 1;
     static AntiAliasingMode aam;
     static AntiAliasingPattern aap;
     
@@ -68,6 +78,61 @@ public class Main {
         return op.filter(bi, null);
     }
     
+    public static OutputStream writeImage( OutputStream os, BufferedImage bi )
+        throws Exception
+    {
+        ImageWriter writer = ImageIO.getImageWritersByFormatName( "png" ).next();
+
+        ImageWriteParam writeParam = writer.getDefaultWriteParam();
+        ImageTypeSpecifier typeSpecifier = ImageTypeSpecifier.createFromBufferedImageType( BufferedImage.TYPE_INT_RGB );
+
+        // add metadata
+        // see https://docs.oracle.com/javase/7/docs/api/javax/imageio/metadata/doc-files/png_metadata.html
+        // and https://www.w3.org/TR/PNG/#11textinfo
+        IIOMetadata metadata = writer.getDefaultImageMetadata( typeSpecifier, writeParam );
+
+        IIOMetadataNode textEntrySoftware = new IIOMetadataNode( "tEXtEntry" );
+        textEntrySoftware.setAttribute( "keyword", "Software" );
+        textEntrySoftware.setAttribute( "value", jsurf_progname + " version " + Main.class.getPackage().getImplementationVersion() + " (http://imaginary.org/program/jsurf)" );
+
+        TimeZone tz = TimeZone.getTimeZone("UTC");
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
+        df.setTimeZone(tz);
+        Date theDate;
+        // use either current time or the timestamp stored in the environment variable
+        // SOURCE_DATE_EPOCH for reproducible builds
+        if( System.getenv( "SOURCE_DATE_EPOCH" ) == null )
+            theDate = new Date();
+        else
+            theDate = new Date( Long.parseLong( System.getenv( "SOURCE_DATE_EPOCH" ) ) * 1000 );
+
+        IIOMetadataNode textEntryCreationTime = new IIOMetadataNode( "tEXtEntry" );
+        textEntryCreationTime.setAttribute( "keyword", "CreationTime" );
+        textEntryCreationTime.setAttribute( "value", df.format( theDate ) );
+
+        IIOMetadataNode textEntrySource = new IIOMetadataNode( "tEXtEntry" );
+        textEntrySource.setAttribute( "keyword", "Source" );
+        textEntrySource.setAttribute( "value", jsurf_progname + " settings: --quality " + quality );
+
+        IIOMetadataNode text = new IIOMetadataNode( "tEXt" );
+        text.appendChild( textEntrySoftware );
+        text.appendChild( textEntryCreationTime );
+        text.appendChild( textEntrySource );
+
+        IIOMetadataNode root = new IIOMetadataNode( "javax_imageio_png_1.0" );
+        root.appendChild( text );
+
+        metadata.mergeTree( "javax_imageio_png_1.0", root );
+
+        // write the image and meta data
+        ImageOutputStream image_os = ImageIO.createImageOutputStream( os );
+        writer.setOutput( image_os );
+        writer.write( metadata, new IIOImage( bi, null, metadata ), writeParam );
+        image_os.close();
+
+        return os;
+    }
+
 	/**
 	 * @param args
 	 */
@@ -121,7 +186,6 @@ public class Main {
     		if( cmd.hasOption("size") )
     			size = Integer.parseInt( cmd.getOptionValue("size") );
 
-    		int quality = 1;
     		if( cmd.hasOption("quality") )
     			quality = Integer.parseInt( cmd.getOptionValue( "quality" ) );
 			switch( quality )
@@ -222,7 +286,7 @@ public class Main {
     				os = System.out;
     			else
     				os = new FileOutputStream( new File( output_filename ) );
-    			javax.imageio.ImageIO.write( bi, "png", os );
+                writeImage( os, bi );
                 os.flush();
                 os.close();
     		}
