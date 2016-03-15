@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
+### Changed
+- some backward compatibility for option machinery
+- more detailed help text
+
+### Added
+- add support for EditorConfig to unify coding style
 
 ## [0.3.0] - 2015-11-17
 ### Changed
