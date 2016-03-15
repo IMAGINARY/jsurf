@@ -1,5 +1,6 @@
 # Gradle files
 .gradle
+gradle.properties
 
 # build files
 build
