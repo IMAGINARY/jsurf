@@ -84,8 +84,8 @@ public class Main {
 		options.addOption( OptionBuilder.withLongOpt( "version" ).withDescription( "print program version and exit" ).create() );
     	options.addOption("s","size", true, "image width and height (default: " + size + ")");
     	options.addOption("q","quality",true,"quality of the rendering: 0 (low), 1 (medium, default), 2 (high), 3 (extreme)");
-			options.addOption("o","output",true,"output PNG into this file (overrode by the 2nd argument if present)");
-      options.addOption( OptionBuilder.withLongOpt( "gui" ).withDescription( "display rendering (overrides output options)" ).create() );
+		options.addOption("o","output",true,"output PNG into this file (overrode by the 2nd argument if present)");
+		options.addOption( OptionBuilder.withLongOpt( "gui" ).withDescription( "display rendering (overrides output options)" ).create() );
 
     	CommandLineParser parser = new PosixParser();
 		HelpFormatter formatter = new HelpFormatter();
@@ -96,7 +96,7 @@ public class Main {
     	    "If the output filename is not specified, the output is placed in a file of the same basename with a '.png' extension in the current working directory.\n" +
 					"Either the input filename or the output filename can be '-' to request reading from stdin or writing to stdout, respectively. " +
 					"Whenever the Graphic Unit Interface (GUI) is available, the gui option takes precedence over the output options, otherwise it is ignored. " +
-					"That is, whenever the gui option is present (and available), the output is displayed in a window rather than written in a PNG file.\n" +
+					"That is, whenever the gui option is present (and available), the output is displayed in a window rather than written to a PNG file.\n" +
 					"\n" ;
     	String help_footer = "";
     	try
