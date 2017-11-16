@@ -5,6 +5,7 @@ apply plugin: 'application'
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
+apply plugin: 'antlr'
 
 targetCompatibility = 1.7
 sourceCompatibility = 1.7
@@ -13,7 +14,15 @@ repositories {
     mavenCentral()
 }
 
+// workaround for excluding certain ANTLR dependencies
+configurations {
+    compile {
+        extendsFrom = extendsFrom.findAll { it != configurations.antlr }
+    }
+}
+
 dependencies {
+    antlr group: "org.antlr", name: "antlr", version: "3.4"
     compile group: 'javax.vecmath', name: 'vecmath', version: '1.5.2'
     compile 'org.antlr:antlr-runtime:3.4@jar'
     compile 'commons-cli:commons-cli:1.2'
@@ -22,7 +31,7 @@ dependencies {
 }
 
 task wrapper(type: Wrapper) {
-	gradleVersion = '1.12'
+	gradleVersion = '2.12'
 }
 
 task sourceJar(type: Jar) {
