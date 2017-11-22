@@ -18,13 +18,23 @@ package de.mfo.jsurf.algebra;
 
 public class PolynomialNegation implements PolynomialOperation
 {
-    public PolynomialOperation operand;
-    
+    private PolynomialOperation operand;
+    private boolean hasParentheses;
+
     public PolynomialNegation( PolynomialOperation operand )
     {
-        this.operand = operand;
+        this( operand, false );
     }
-    
+
+    public PolynomialNegation( PolynomialOperation operand, boolean hasParentheses )
+    {
+        this.operand = operand;
+        this.hasParentheses = hasParentheses;
+    }
+
+    public PolynomialOperation getOperand() { return operand; }
+    public boolean hasParentheses() { return hasParentheses; }
+
     public < RETURN_TYPE, PARAM_TYPE > RETURN_TYPE accept( Visitor< RETURN_TYPE, PARAM_TYPE > visitor, PARAM_TYPE arg )
     {
         return visitor.visit( this, arg );

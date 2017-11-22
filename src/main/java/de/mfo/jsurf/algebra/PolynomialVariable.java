@@ -19,13 +19,23 @@ package de.mfo.jsurf.algebra;
 public class PolynomialVariable implements PolynomialOperation
 {
     public enum Var { x, y, z; }
-    public Var variable;
-    
+    private Var variable;
+    private boolean hasParentheses;
+
     public PolynomialVariable( Var variable )
     {
-        this.variable = variable;
+        this( variable, false );
     }
-    
+
+    public PolynomialVariable( Var variable, boolean hasParentheses )
+    {
+        this.variable = variable;
+        this.hasParentheses = hasParentheses;
+    }
+
+    public Var getVariable() { return variable; }
+    public boolean hasParentheses() { return hasParentheses; }
+
     public < RETURN_TYPE, PARAM_TYPE > RETURN_TYPE accept( Visitor< RETURN_TYPE, PARAM_TYPE > visitor, PARAM_TYPE arg )
     {
         return visitor.visit( this, arg );

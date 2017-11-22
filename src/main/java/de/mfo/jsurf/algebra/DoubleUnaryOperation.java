@@ -19,16 +19,27 @@ package de.mfo.jsurf.algebra;
 public class DoubleUnaryOperation implements DoubleOperation
 {
     public enum Op { neg, sin, cos, tan, asin, acos, atan, exp, log, sqrt, ceil, floor, abs, sign; }
-    
-    public Op operator;
-    public DoubleOperation operand;
-    
+
+    private Op operator;
+    private DoubleOperation operand;
+    private boolean hasParentheses;
+
     public DoubleUnaryOperation( Op operator, DoubleOperation operand )
+    {
+        this( operator, operand, false );
+    }
+
+    public DoubleUnaryOperation( Op operator, DoubleOperation operand, boolean hasParentheses )
     {
         this.operator = operator;
         this.operand = operand;
+        this.hasParentheses = hasParentheses;
     }
-    
+
+    public Op getOperator() { return operator; }
+    public DoubleOperation getOperand() { return operand; }
+    public boolean hasParentheses() { return hasParentheses; }
+
     public < RETURN_TYPE, PARAM_TYPE > RETURN_TYPE accept( Visitor< RETURN_TYPE, PARAM_TYPE > visitor, PARAM_TYPE arg )
     {
         return visitor.visit( this, arg );

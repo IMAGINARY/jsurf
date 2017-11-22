@@ -18,15 +18,29 @@ package de.mfo.jsurf.algebra;
 
 public class PolynomialPower implements PolynomialOperation
 {
-    public PolynomialOperation base;
-    public int exponent;
-    
+    private PolynomialOperation base;
+    private int exponent;
+    private boolean hasParentheses;
+
     public PolynomialPower( PolynomialOperation base, int exponent )
     {
+        this( base, exponent, false );
+    }
+
+    public PolynomialPower( PolynomialOperation base, int exponent, boolean hasParentheses )
+    {
+        if( exponent < 0 )
+            throw new IllegalArgumentException( "exponent must be >= 0" );
+
         this.base = base;
         this.exponent = exponent;
+        this.hasParentheses = hasParentheses;
     }
-    
+
+    public PolynomialOperation getBase() { return base; }
+    public int getExponent() { return exponent; }
+    public boolean hasParentheses() { return hasParentheses; }
+
     public < RETURN_TYPE, PARAM_TYPE > RETURN_TYPE accept( Visitor< RETURN_TYPE, PARAM_TYPE > visitor, PARAM_TYPE arg )
     {
         return visitor.visit( this, arg );

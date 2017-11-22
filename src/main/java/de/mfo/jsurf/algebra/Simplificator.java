@@ -54,12 +54,12 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
 
     public PolynomialOperation visit( PolynomialAddition pa, Void param )
     {
-        PolynomialOperation firstOperand = pa.firstOperand.accept( this, ( Void ) null );
-        PolynomialOperation secondOperand = pa.secondOperand.accept( this, ( Void ) null );
+        PolynomialOperation firstOperand = pa.getFirstOperand().accept( this, ( Void ) null );
+        PolynomialOperation secondOperand = pa.getSecondOperand().accept( this, ( Void ) null );
 
         try
         {
-            if( ( ( DoubleValue ) firstOperand ).value == 0.0 )
+            if( ( ( DoubleValue ) firstOperand ).getValue() == 0.0 )
                 return secondOperand;
         }
         catch( ClassCastException cce )
@@ -67,7 +67,7 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
         }
         try
         {
-            if( ( ( DoubleValue ) secondOperand ).value == 0.0 )
+            if( ( ( DoubleValue ) secondOperand ).getValue() == 0.0 )
                 return firstOperand;
         }
         catch( ClassCastException cce )
@@ -85,12 +85,12 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
 
     public PolynomialOperation visit( PolynomialSubtraction ps, Void param )
     {
-        PolynomialOperation firstOperand = ps.firstOperand.accept( this, ( Void ) null );
-        PolynomialOperation secondOperand = ps.secondOperand.accept( this, ( Void ) null );
+        PolynomialOperation firstOperand = ps.getFirstOperand().accept( this, ( Void ) null );
+        PolynomialOperation secondOperand = ps.getSecondOperand().accept( this, ( Void ) null );
 
         try
         {
-            if( ( ( DoubleValue ) firstOperand ).value == 0.0 )
+            if( ( ( DoubleValue ) firstOperand ).getValue() == 0.0 )
                 return new PolynomialNegation( secondOperand ).accept( this, ( Void ) null );
         }
         catch( ClassCastException cce )
@@ -98,7 +98,7 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
         }
         try
         {
-            if( ( ( DoubleValue ) secondOperand ).value == 0.0 )
+            if( ( ( DoubleValue ) secondOperand ).getValue() == 0.0 )
                 return firstOperand;
         }
         catch( ClassCastException cce )
@@ -110,20 +110,20 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
         }
         catch( ClassCastException cce )
         {
-        }        
+        }
         return new PolynomialSubtraction( firstOperand, secondOperand );
     }
 
     public PolynomialOperation visit( PolynomialMultiplication pm, Void param )
     {
-        PolynomialOperation firstOperand = pm.firstOperand.accept( this, ( Void ) null );
-        PolynomialOperation secondOperand = pm.secondOperand.accept( this, ( Void ) null );
-        
+        PolynomialOperation firstOperand = pm.getFirstOperand().accept( this, ( Void ) null );
+        PolynomialOperation secondOperand = pm.getSecondOperand().accept( this, ( Void ) null );
+
         try
         {
-            if( ( ( DoubleValue ) firstOperand ).value == 0.0 )
+            if( ( ( DoubleValue ) firstOperand ).getValue() == 0.0 )
                 return firstOperand;
-            else if( ( ( DoubleValue ) firstOperand ).value == 1.0 )
+            else if( ( ( DoubleValue ) firstOperand ).getValue() == 1.0 )
                 return secondOperand;
         }
         catch( ClassCastException cce )
@@ -131,9 +131,9 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
         }
         try
         {
-            if( ( ( DoubleValue ) secondOperand ).value == 0.0 )
+            if( ( ( DoubleValue ) secondOperand ).getValue() == 0.0 )
                 return secondOperand;
-            else if( ( ( DoubleValue ) secondOperand ).value == 1.0 )
+            else if( ( ( DoubleValue ) secondOperand ).getValue() == 1.0 )
                 return firstOperand;
         }
         catch( ClassCastException cce )
@@ -151,12 +151,12 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
 
     public PolynomialOperation visit( PolynomialPower pp, Void param )
     {
-        PolynomialOperation base = pp.base.accept( this, ( Void ) null );
-        if( pp.exponent == 0 )
+        PolynomialOperation base = pp.getBase().accept( this, ( Void ) null );
+        if( pp.getExponent() == 0 )
         {
             return new DoubleValue( 1.0 );
         }
-        else if( pp.exponent == 1 )
+        else if( pp.getExponent() == 1 )
         {
             return base;
         }
@@ -165,21 +165,21 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
         }
         try
         {
-            double dBase = ( ( DoubleValue ) base ).value;
-            return new DoubleValue( Math.pow( dBase, pp.exponent ) );
+            double dBase = ( ( DoubleValue ) base ).getValue();
+            return new DoubleValue( Math.pow( dBase, pp.getExponent() ) );
         }
         catch( ClassCastException cce )
         {
-        }        
-        return new PolynomialPower( base, pp.exponent );
+        }
+        return new PolynomialPower( base, pp.getExponent() );
     }
 
     public PolynomialOperation visit( PolynomialNegation pn, Void param )
     {
-        PolynomialOperation operand = pn.operand.accept( this, ( Void ) null );
+        PolynomialOperation operand = pn.getOperand().accept( this, ( Void ) null );
         try
         {
-            return new DoubleValue( -( ( DoubleValue ) operand ).value );
+            return new DoubleValue( -( ( DoubleValue ) operand ).getValue() );
         }
         catch( ClassCastException cce )
         {
@@ -189,11 +189,11 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
 
     public PolynomialOperation visit( PolynomialDoubleDivision pdd, Void param )
     {
-        PolynomialOperation dividend = pdd.dividend.accept( this, ( Void ) null );
-        PolynomialOperation divisor = pdd.divisor.accept( this, ( Void ) null );
+        PolynomialOperation dividend = pdd.getDividend().accept( this, ( Void ) null );
+        PolynomialOperation divisor = pdd.getDivisor().accept( this, ( Void ) null );
         try
         {
-            return new DoubleValue( ( ( DoubleValue ) dividend ).value / ( ( DoubleValue ) divisor ).value );
+            return new DoubleValue( ( ( DoubleValue ) dividend ).getValue() / ( ( DoubleValue ) divisor ).getValue() );
         }
         catch( ClassCastException cce1 )
         {
@@ -215,15 +215,15 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
 
     public DoubleOperation visit( DoubleBinaryOperation dbop, Void param )
     {
-        DoubleOperation firstOperand = ( DoubleOperation ) dbop.firstOperand.accept( this, ( Void ) null );
-        DoubleOperation secondOperand = ( DoubleOperation ) dbop.secondOperand.accept( this, ( Void ) null );
+        DoubleOperation firstOperand = ( DoubleOperation ) dbop.getFirstOperand().accept( this, ( Void ) null );
+        DoubleOperation secondOperand = ( DoubleOperation ) dbop.getSecondOperand().accept( this, ( Void ) null );
 
         try
         {
-            double firstValue = ( ( DoubleValue ) firstOperand ).value;
-            double secondValue = ( ( DoubleValue ) secondOperand ).value;
+            double firstValue = ( ( DoubleValue ) firstOperand ).getValue();
+            double secondValue = ( ( DoubleValue ) secondOperand ).getValue();
             double result;
-            switch( dbop.operator )
+            switch( dbop.getOperator() )
             {
                 case add:
                     result = firstValue + secondValue;
@@ -250,18 +250,18 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
         }
         catch( ClassCastException cce )
         {
-            return new DoubleBinaryOperation( dbop.operator, firstOperand, secondOperand );
+            return new DoubleBinaryOperation( dbop.getOperator(), firstOperand, secondOperand );
         }
     }
 
     public DoubleOperation visit( DoubleUnaryOperation duop, Void param )
     {
-        DoubleOperation operand = ( DoubleOperation ) duop.operand.accept( this, ( Void ) null );
+        DoubleOperation operand = ( DoubleOperation ) duop.getOperand().accept( this, ( Void ) null );
         try
         {
-            double value = ( ( DoubleValue ) operand ).value;
+            double value = ( ( DoubleValue ) operand ).getValue();
             double result;
-            switch( duop.operator )
+            switch( duop.getOperator() )
             {
                 case neg:
                     result = -value;
@@ -312,7 +312,7 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
         }
         catch( ClassCastException cce )
         {
-            return new DoubleUnaryOperation( duop.operator, operand );
+            return new DoubleUnaryOperation( duop.getOperator(), operand );
         }
     }
 
@@ -325,7 +325,7 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
     {
         try
         {
-            return new DoubleValue( this.dict.get( dv.name ) );
+            return new DoubleValue( this.dict.get( dv.getName() ) );
         }
         catch( NullPointerException npe )
         {

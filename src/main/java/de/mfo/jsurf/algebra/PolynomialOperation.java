@@ -18,5 +18,6 @@ package de.mfo.jsurf.algebra;
 
 public interface PolynomialOperation
 {
+    public boolean hasParentheses();
     public < RETURN_TYPE, PARAM_TYPE > RETURN_TYPE accept( Visitor< RETURN_TYPE, PARAM_TYPE > visitor, PARAM_TYPE arg );
 }

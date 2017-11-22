@@ -26,6 +26,7 @@ tokens {
 	POW	= '^' ;
 	LPAR	= '(' ;
 	RPAR	= ')' ;
+    PARENTHESES;
 }
 
 @header
@@ -123,14 +124,14 @@ pow_expr
 
 unary_expr
         : primary_expr
-	| IDENTIFIER^ LPAR! add_expr RPAR!
+	| IDENTIFIER LPAR add_expr RPAR -> ^(IDENTIFIER PARENTHESES add_expr)
 	;
 
 primary_expr
 	: DECIMAL_LITERAL
 	| FLOATING_POINT_LITERAL
 	| IDENTIFIER
-	| LPAR! add_expr RPAR!
+	| LPAR add_expr RPAR -> PARENTHESES add_expr
 	;
 
 /*------------------------------------------------------------------

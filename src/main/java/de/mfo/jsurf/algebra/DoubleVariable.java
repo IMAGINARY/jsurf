@@ -18,13 +18,23 @@ package de.mfo.jsurf.algebra;
 
 public class DoubleVariable implements DoubleOperation
 {
-    public String name;
-   
+    private String name;
+    private boolean hasParentheses;
+
     public DoubleVariable( String name )
     {
-        this.name = name;
+        this( name, false );
     }
-    
+
+    public DoubleVariable( String name, boolean hasParentheses )
+    {
+        this.name = name;
+        this.hasParentheses = hasParentheses;
+    }
+
+    public String getName() { return name; }
+    public boolean hasParentheses() { return hasParentheses; }
+
     public < RETURN_TYPE, PARAM_TYPE > RETURN_TYPE accept( Visitor< RETURN_TYPE, PARAM_TYPE > visitor, PARAM_TYPE arg )
     {
         return visitor.visit( this, arg );

@@ -18,15 +18,45 @@ package de.mfo.jsurf.algebra;
 
 public class DoubleValue implements DoubleOperation
 {
-    public double value;
-   
+    private double value;
+    private String stringValue;
+    private boolean hasParentheses;
+
+    public DoubleValue( String stringValue )
+    {
+        this( stringValue, false );
+    }
+
+    public DoubleValue( String stringValue, boolean hasParentheses )
+    {
+        this.stringValue = stringValue;
+        this.value = Double.parseDouble( stringValue );
+        this.hasParentheses = hasParentheses;
+    }
+
     public DoubleValue( double value )
     {
-        this.value = value;
+        this( value, false );
     }
-    
+
+    public DoubleValue( double value, boolean hasParentheses )
+    {
+        this.value = value;
+        this.stringValue = value == (int) value ? String.valueOf( (int) value ) : String.valueOf( value );
+        this.hasParentheses = hasParentheses;
+    }
+
+    public double getValue() { return value; }
+    public boolean hasParentheses() { return hasParentheses; }
+
     public < RETURN_TYPE, PARAM_TYPE > RETURN_TYPE accept( Visitor< RETURN_TYPE, PARAM_TYPE > visitor, PARAM_TYPE arg )
     {
         return visitor.visit( this, arg );
+    }
+
+    @Override
+    public String toString()
+    {
+        return this.stringValue;
     }
 }

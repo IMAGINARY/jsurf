@@ -27,15 +27,15 @@ import de.mfo.jsurf.algebra.*;
 
 @members
 {
-    public static PolynomialOperation createVariable( String name )
+    public static PolynomialOperation createVariable( String name, boolean hasParentheses )
     {
         try
         {
-            return new PolynomialVariable( PolynomialVariable.Var.valueOf( name ) );
+            return new PolynomialVariable( PolynomialVariable.Var.valueOf( name ), hasParentheses );
         }
         catch( Exception e )
         {
-            return new DoubleVariable( name );
+            return new DoubleVariable( name, hasParentheses );
         }
     }
 
@@ -50,18 +50,6 @@ import de.mfo.jsurf.algebra.*;
             return 0;
         }
     }
-
-    public static double createDouble( String text )
-    {
-        try
-        {
-            return Double.parseDouble( text );
-        }
-        catch( NumberFormatException nfe )
-        {
-            return Double.NaN;
-        }
-    }
 }
 
 start returns [ PolynomialOperation op ]
@@ -69,44 +57,44 @@ start returns [ PolynomialOperation op ]
     ;
 
 expr returns [ PolynomialOperation op, Integer decimal ]
-	: ^( PLUS e1 = expr e2 = expr )
+	:  ( p = PARENTHESES )? ^( PLUS e1 = expr e2 = expr )
             {
                 try
                 {
-                    $op = new DoubleBinaryOperation( DoubleBinaryOperation.Op.add, ( DoubleOperation ) $e1.op, ( DoubleOperation ) $e2.op );
+                    $op = new DoubleBinaryOperation( DoubleBinaryOperation.Op.add, ( DoubleOperation ) $e1.op, ( DoubleOperation ) $e2.op, p != null );
                 }
                 catch( ClassCastException cce )
                 {
-                    $op = new PolynomialAddition( $e1.op, $e2.op );
+                    $op = new PolynomialAddition( $e1.op, $e2.op, p != null );
                 }
             }
-        | ^( MINUS e1 = expr ( e2 = expr )?  )
+        | ( p = PARENTHESES )? ^( MINUS e1 = expr ( e2 = expr )?  )
             {
                 if( e2 != null )
                 {
                     // subtraction
                     try
                     {
-                        $op = new DoubleBinaryOperation( DoubleBinaryOperation.Op.sub, ( DoubleOperation ) $e1.op, ( DoubleOperation ) $e2.op );
+                        $op = new DoubleBinaryOperation( DoubleBinaryOperation.Op.sub, ( DoubleOperation ) $e1.op, ( DoubleOperation ) $e2.op, p != null );
                     }
                     catch( ClassCastException cce )
                     {
-                        $op = new PolynomialSubtraction( $e1.op, $e2.op );
+                        $op = new PolynomialSubtraction( $e1.op, $e2.op, p != null );
                     }
                 }
                 else
                 {
                     try
                     {
-                        $op = new DoubleUnaryOperation( DoubleUnaryOperation.Op.neg, ( DoubleOperation ) $e1.op );
+                        $op = new DoubleUnaryOperation( DoubleUnaryOperation.Op.neg, ( DoubleOperation ) $e1.op, p != null );
                     }
                     catch( ClassCastException cce )
                     {
-                        $op = new PolynomialNegation( $e1.op );
+                        $op = new PolynomialNegation( $e1.op, p != null );
                     }
                 }
             }
-        | ^( MULT e1 = expr e2 = expr )
+        | ( p = PARENTHESES )? ^( MULT e1 = expr e2 = expr )
             {
                 try
                 {
@@ -114,20 +102,20 @@ expr returns [ PolynomialOperation op, Integer decimal ]
                 }
                 catch( ClassCastException cce )
                 {
-                    $op = new PolynomialMultiplication( $e1.op, $e2.op );
+                    $op = new PolynomialMultiplication( $e1.op, $e2.op, p != null );
                 }
             }
-        | ^( DIV e1 = expr e2 = expr )
+        | ( p = PARENTHESES )? ^( DIV e1 = expr e2 = expr )
             {
                 try
                 {
-                    $op = new DoubleBinaryOperation( DoubleBinaryOperation.Op.div, ( DoubleOperation ) $e1.op, ( DoubleOperation ) $e2.op );
+                    $op = new DoubleBinaryOperation( DoubleBinaryOperation.Op.div, ( DoubleOperation ) $e1.op, ( DoubleOperation ) $e2.op, p != null );
                 }
                 catch( ClassCastException cce1 )
                 {
                     try
                     {
-                        $op = new PolynomialDoubleDivision( $e1.op, ( DoubleOperation ) $e2.op );
+                        $op = new PolynomialDoubleDivision( $e1.op, ( DoubleOperation ) $e2.op, p != null );
                     }
                     catch( ClassCastException cce2 )
                     {
@@ -135,11 +123,11 @@ expr returns [ PolynomialOperation op, Integer decimal ]
                     }
                 }
             }
-        | ^( POW e1 = expr e2 = expr )
+        | ( p = PARENTHESES )? ^( POW e1 = expr e2 = expr )
             {
                 try
                 {
-                    $op = new DoubleBinaryOperation( DoubleBinaryOperation.Op.pow, ( DoubleOperation ) $e1.op, ( DoubleOperation ) $e2.op );
+                    $op = new DoubleBinaryOperation( DoubleBinaryOperation.Op.pow, ( DoubleOperation ) $e1.op, ( DoubleOperation ) $e2.op, p != null );
                 }
                 catch( ClassCastException cce )
                 {
@@ -149,17 +137,17 @@ expr returns [ PolynomialOperation op, Integer decimal ]
                     }
                     else
                     {
-                        $op = new PolynomialPower( $e1.op, $e2.decimal );
+                        $op = new PolynomialPower( $e1.op, $e2.decimal, p != null );
                     }
                 }
             }
-        | ^( id = IDENTIFIER e1 = expr ( e2 = expr )? )
+        | ( p = PARENTHESES )? ^( id = IDENTIFIER e1 = expr ( e2 = expr )? )
             {
                 if( e2 != null )
                 {
                     try
                     {
-                        $op = new DoubleBinaryOperation( DoubleBinaryOperation.Op.valueOf( $id.text ), ( DoubleOperation ) $e1.op, ( DoubleOperation ) $e2.op );
+                        $op = new DoubleBinaryOperation( DoubleBinaryOperation.Op.valueOf( $id.text ), ( DoubleOperation ) $e1.op, ( DoubleOperation ) $e2.op, p != null );
                     }
                     catch( ClassCastException cce )
                     {
@@ -174,7 +162,7 @@ expr returns [ PolynomialOperation op, Integer decimal ]
                 {
                     try
                     {
-                        $op = new DoubleUnaryOperation( DoubleUnaryOperation.Op.valueOf( $id.text ), ( DoubleOperation ) $e1.op );
+                        $op = new DoubleUnaryOperation( DoubleUnaryOperation.Op.valueOf( $id.text ), ( DoubleOperation ) $e1.op, p != null );
                     }
                     catch( ClassCastException cce )
                     {
@@ -185,13 +173,12 @@ expr returns [ PolynomialOperation op, Integer decimal ]
                         throw new RecognitionException();
                     }
                 }
-
             }
         | pe = primary_expr { $op = $pe.op; $decimal = pe.decimal; }
 	;
 
 primary_expr returns [ PolynomialOperation op, Integer decimal ]
-	: i = DECIMAL_LITERAL { $op = new DoubleValue( createDouble( $i.text ) ); $decimal = Integer.valueOf( createInteger( $i.text ) ); }
-	| f = FLOATING_POINT_LITERAL { $op = new DoubleValue( createDouble( $f.text ) ); }
-	| id = IDENTIFIER { $op = createVariable( $id.text ); }
+	: ( p = PARENTHESES )? i = DECIMAL_LITERAL { $op = new DoubleValue( $i.text, p != null ); $decimal = Integer.valueOf( createInteger( $i.text ) ); }
+	| ( p = PARENTHESES )? f = FLOATING_POINT_LITERAL { $op = new DoubleValue( $f.text, p != null ); }
+	| ( p = PARENTHESES )? id = IDENTIFIER { $op = createVariable( $id.text, p != null ); }
 	;

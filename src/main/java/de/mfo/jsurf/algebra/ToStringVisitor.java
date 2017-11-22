@@ -18,131 +18,152 @@ package de.mfo.jsurf.algebra;
 
 public class ToStringVisitor extends AbstractVisitor< String, Void >
 {
+    final static String LPAR = "(";
+    final static String RPAR = ")";
+
+    private boolean onlyExplicitParentheses;
+
+    public ToStringVisitor()
+    {
+        this( false );
+    }
+
+    public ToStringVisitor( boolean onlyExplicitParentheses )
+    {
+        this.onlyExplicitParentheses = onlyExplicitParentheses;
+    }
+
+    protected boolean getOnlyExplicitParentheses() { return onlyExplicitParentheses; }
+
+    String lp( PolynomialOperation pop )
+    {
+        return !onlyExplicitParentheses || pop.hasParentheses() ? LPAR : "";
+    }
+
+    String rp( PolynomialOperation pop )
+    {
+        return !onlyExplicitParentheses || pop.hasParentheses() ? RPAR : "";
+    }
+
     public String visit( PolynomialOperation pop, Void param )
     {
-        return "(" + pop.toString() + ")";
+        return lp(pop) + pop.toString() + rp(pop);
     }
-    
+
     public String visit( PolynomialAddition pa, Void param )
     {
-        return "(" + pa.firstOperand.accept( this, ( Void ) null ) + "+" + pa.secondOperand.accept( this, ( Void ) null ) + ")";
+        return lp(pa) + pa.getFirstOperand().accept( this, ( Void ) null ) + "+" + pa.getSecondOperand().accept( this, ( Void ) null ) + rp(pa);
     }
-    
+
     public String visit( PolynomialSubtraction ps, Void param )
     {
-        return "(" + ps.firstOperand.accept( this, ( Void ) null ) + "-" + ps.secondOperand.accept( this, ( Void ) null ) + ")";
+        return lp(ps) + ps.getFirstOperand().accept( this, ( Void ) null ) + "-" + ps.getSecondOperand().accept( this, ( Void ) null ) + rp(ps);
     }
-    
+
     public String visit( PolynomialMultiplication pm, Void param )
     {
-        return "(" + pm.firstOperand.accept( this, ( Void ) null ) + "*" + pm.secondOperand.accept( this, ( Void ) null ) + ")";
+        return lp(pm) + pm.getFirstOperand().accept( this, ( Void ) null ) + "*" + pm.getSecondOperand().accept( this, ( Void ) null ) + rp(pm);
     }
 
     public String visit( PolynomialPower pp, Void param )
     {
-        return "(" + pp.base.accept( this, ( Void ) null ) + "^" + pp.exponent + ")";
+        return lp(pp) + pp.getBase().accept( this, ( Void ) null ) + "^" + pp.getExponent() + rp(pp);
     }
 
     public String visit( PolynomialNegation pn, Void param )
     {
-        return "(" + pn.operand.accept( this, ( Void ) null ) + ")";
+        return lp(pn) + "-" + pn.getOperand().accept( this, ( Void ) null ) + rp(pn);
     }
-    
+
     public String visit( PolynomialDoubleDivision pdd, Void param )
     {
-        return "( " + pdd.dividend.accept( this,( Void ) null ) + "/" + pdd.divisor.accept( this,( Void ) null ) + ")";
+        return lp(pdd) + pdd.getDividend().accept( this,( Void ) null ) + "/" + pdd.getDivisor().accept( this,( Void ) null ) + rp(pdd);
     }
-    
+
     public String visit( PolynomialVariable pv, Void param )
     {
-        switch( pv.variable )
-        {
-            case x:
-                return "x";
-            case y:
-                return "y";
-            case z:
-                return "z";
-            default:
-                throw new UnsupportedOperationException();
-        }
+        return lp(pv) + pv.getVariable().toString() + rp(pv);
     }
-    
+
     public String visit( DoubleOperation dop, Void param )
     {
-        return "(" + dop.toString() + ")";
+        return lp(dop) + dop.toString() + rp(dop);
     }
-    
+
     public String visit( DoubleBinaryOperation dbop, Void param )
     {
-        String firstOperand = dbop.firstOperand.accept( this, ( Void ) null );
-        String secondOperand = dbop.secondOperand.accept( this, ( Void ) null );
-        
-        switch( dbop.operator )
+        String lp = lp(dbop);
+        String rp = lp(dbop);
+        String firstOperand = dbop.getFirstOperand().accept( this, ( Void ) null );
+        String secondOperand = dbop.getSecondOperand().accept( this, ( Void ) null );
+
+        switch( dbop.getOperator() )
         {
             case add:
-                return "(" + firstOperand + "+" + secondOperand + ")";
+                return lp + firstOperand + "+" + secondOperand + rp;
             case sub:
-                return "(" + firstOperand + "-" + secondOperand + ")";
+                return lp + firstOperand + "-" + secondOperand + rp;
             case mult:
-                return "(" + firstOperand + "*" + secondOperand + ")";
+                return lp + firstOperand + "*" + secondOperand + rp;
             case div:
-                return "(" + firstOperand + "/" + secondOperand + ")";
+                return lp + firstOperand + "/" + secondOperand + rp;
             case pow:
-                return "(" + firstOperand + "^" + secondOperand + ")";
+                return lp + firstOperand + "^" + secondOperand + rp;
             case atan2:
-                return "atan2(" + firstOperand + ", " + secondOperand + ")";
-            default:
-                throw new UnsupportedOperationException();
-        }        
-    }
-    
-    public String visit( DoubleUnaryOperation duop, Void param )
-    {
-        String operand = duop.operand.accept( this, ( Void ) null );
-        
-        switch( duop.operator )
-        {
-            case neg:
-                return "(-" + operand + ")";
-            case sin:
-                return "sin(" + operand + ")";
-            case cos:
-                return "cos(" + operand + ")";
-            case tan:
-                return "tan(" + operand + ")";
-            case asin:
-                return "asin(" + operand + ")";
-            case acos:
-                return "acos(" + operand + ")";
-            case atan:
-                return "atan(" + operand + ")";
-            case exp:
-                return "exp(" + operand + ")";
-            case log:
-                return "log(" + operand + ")";
-            case sqrt:
-                return "sqrt(" + operand + ")";
-            case ceil:
-                return "ceil(" + operand + ")";
-            case floor:
-                return "floor(" + operand + ")";
-            case abs:
-                return "abs(" + operand + ")";
-            case sign:
-                return "signum(" + operand + ")";
+                return "atan2" + lp + firstOperand + ", " + secondOperand + rp;
             default:
                 throw new UnsupportedOperationException();
         }
     }
-    
+
+    public String visit( DoubleUnaryOperation duop, Void param )
+    {
+        String lp = lp(duop);
+        String rp = lp(duop);
+        String operand = duop.getOperand().accept( this, ( Void ) null );
+
+        switch( duop.getOperator() )
+        {
+            case neg:
+                return lp + "-" + operand + rp;
+            case sin:
+                return "sin" + lp + operand + rp;
+            case cos:
+                return "cos" + lp + operand + rp;
+            case tan:
+                return "tan" + lp + operand + rp;
+            case asin:
+                return "asin" + lp + operand + rp;
+            case acos:
+                return "acos" + lp + operand + rp;
+            case atan:
+                return "atan" + lp + operand + rp;
+            case exp:
+                return "exp" + lp + operand + rp;
+            case log:
+                return "log" + lp + operand + rp;
+            case sqrt:
+                return "sqrt" + lp + operand + rp;
+            case ceil:
+                return "ceil" + lp + operand + rp;
+            case floor:
+                return "floor" + lp + operand + rp;
+            case abs:
+                return "abs" + lp + operand + rp;
+            case sign:
+                return "signum" + lp + operand + rp;
+            default:
+                throw new UnsupportedOperationException();
+        }
+    }
+
     public String visit( DoubleValue dv, Void param )
     {
-        return "" + dv.value;
+        return lp(dv) + dv.toString() + rp(dv);
     }
-    
+
     public String visit( DoubleVariable dv, Void param )
     {
-        return dv.name;
+        return lp(dv) + dv.getName() + rp(dv);
     }
 }
