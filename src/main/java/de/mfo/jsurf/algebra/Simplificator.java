@@ -240,9 +240,6 @@ public class Simplificator extends AbstractVisitor< PolynomialOperation, Void >
                 case pow:
                     result = Math.pow( firstValue, secondValue );
                     break;
-                case atan2:
-                    result = Math.atan2( firstValue, secondValue );
-                    break;
                 default:
                     throw new UnsupportedOperationException();
             }

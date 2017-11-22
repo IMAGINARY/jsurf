@@ -18,7 +18,7 @@ package de.mfo.jsurf.algebra;
 
 public class DoubleBinaryOperation implements DoubleOperation
 {
-    public enum Op { add, sub, mult, div, pow, atan2; }
+    public enum Op { add, sub, mult, div, pow; }
 
     private Op operator;
     private DoubleOperation firstOperand;

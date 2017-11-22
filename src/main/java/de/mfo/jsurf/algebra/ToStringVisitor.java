@@ -109,8 +109,6 @@ public class ToStringVisitor extends AbstractVisitor< String, Void >
                 return lp + firstOperand + "/" + secondOperand + rp;
             case pow:
                 return lp + firstOperand + "^" + secondOperand + rp;
-            case atan2:
-                return "atan2" + lp + firstOperand + ", " + secondOperand + rp;
             default:
                 throw new UnsupportedOperationException();
         }

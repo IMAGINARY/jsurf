@@ -161,8 +161,6 @@ public class ValueCalculator extends AbstractVisitor< java.lang.Double, Void >
                 return firstOperand / secondOperand;
             case pow:
                 return Math.pow( firstOperand, secondOperand );
-            case atan2:
-                return Math.atan2( firstOperand, secondOperand );
             default:
                 throw new UnsupportedOperationException();
         }
