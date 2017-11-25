@@ -21,45 +21,45 @@ import java.util.*;
 public class DoubleVariableRenameVisitor extends AbstractVisitor< PolynomialOperation, Void >
 {
 	private Map< String, String > m;
-	
+
 	public DoubleVariableRenameVisitor( Map< String, String > m ) { this.m = m; }
-	
+
     public PolynomialOperation visit( PolynomialAddition pa, Void param )
     {
-        pa.firstOperand.accept( this, ( Void ) null );
-        pa.secondOperand.accept( this, ( Void ) null );
+        pa.getFirstOperand().accept( this, ( Void ) null );
+        pa.getSecondOperand().accept( this, ( Void ) null );
         return pa;
     }
 
     public PolynomialOperation visit( PolynomialSubtraction ps, Void param )
     {
-        ps.firstOperand.accept( this, ( Void ) null );
-        ps.secondOperand.accept( this, ( Void ) null );
+        ps.getFirstOperand().accept( this, ( Void ) null );
+        ps.getSecondOperand().accept( this, ( Void ) null );
         return ps;
     }
 
     public PolynomialOperation visit( PolynomialMultiplication pm, Void param )
     {
-        pm.firstOperand.accept( this, ( Void ) null );
-        pm.secondOperand.accept( this, ( Void ) null );
+        pm.getFirstOperand().accept( this, ( Void ) null );
+        pm.getSecondOperand().accept( this, ( Void ) null );
         return pm;
     }
 
     public PolynomialOperation visit( PolynomialPower pp, Void param )
     {
-        return pp.base.accept( this, ( Void ) null );
+        return pp.getBase().accept( this, ( Void ) null );
     }
 
     public PolynomialOperation visit( PolynomialNegation pn, Void param )
     {
-        pn.operand.accept( this, ( Void ) null );
+        pn.getOperand().accept( this, ( Void ) null );
         return pn;
     }
 
     public PolynomialOperation visit( PolynomialDoubleDivision pdd, Void param )
     {
-        pdd.dividend.accept( this, ( Void ) null );
-        pdd.divisor.accept( this, ( Void ) null );
+        pdd.getDividend().accept( this, ( Void ) null );
+        pdd.getDivisor().accept( this, ( Void ) null );
         return pdd;
     }
 
@@ -70,14 +70,14 @@ public class DoubleVariableRenameVisitor extends AbstractVisitor< PolynomialOper
 
     public PolynomialOperation visit( DoubleBinaryOperation dbop, Void param )
     {
-        dbop.firstOperand.accept( this, ( Void ) null );
-        dbop.secondOperand.accept( this, ( Void ) null );
+        dbop.getFirstOperand().accept( this, ( Void ) null );
+        dbop.getSecondOperand().accept( this, ( Void ) null );
         return dbop;
     }
 
     public PolynomialOperation visit( DoubleUnaryOperation duop, Void param )
     {
-        return duop.operand.accept( this, ( Void ) null );
+        return duop.getOperand().accept( this, ( Void ) null );
     }
 
     public PolynomialOperation visit( DoubleValue dv, Void param )
@@ -86,9 +86,8 @@ public class DoubleVariableRenameVisitor extends AbstractVisitor< PolynomialOper
     }
 
     public PolynomialOperation visit( DoubleVariable dv, Void param )
-    {	
-    	String new_name = m.get( dv.name );
-    	dv.name = new_name != null ? new_name : dv.name;
-        return dv;
+    {
+    	String new_name = m.get( dv.getName() );
+        return new DoubleVariable( new_name != null ? new_name : dv.getName() );
     }
 }

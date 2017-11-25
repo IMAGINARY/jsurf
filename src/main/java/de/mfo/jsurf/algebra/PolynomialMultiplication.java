@@ -18,17 +18,28 @@ package de.mfo.jsurf.algebra;
 
 public class PolynomialMultiplication implements PolynomialOperation
 {
-    public PolynomialOperation firstOperand;
-    public PolynomialOperation secondOperand;
+    private PolynomialOperation firstOperand;
+    private PolynomialOperation secondOperand;
+    private boolean hasParentheses;
 
     public PolynomialMultiplication( PolynomialOperation firstOperand, PolynomialOperation secondOperand )
     {
+        this( firstOperand, secondOperand, false );
+    }
+
+    public PolynomialMultiplication( PolynomialOperation firstOperand, PolynomialOperation secondOperand, boolean hasParentheses )
+    {
         this.firstOperand = firstOperand;
         this.secondOperand = secondOperand;
+        this.hasParentheses = hasParentheses;
     }
-    
+
+    public PolynomialOperation getFirstOperand() { return firstOperand; }
+    public PolynomialOperation getSecondOperand() { return secondOperand; }
+    public boolean hasParentheses() { return hasParentheses; }
+
     public < RETURN_TYPE, PARAM_TYPE > RETURN_TYPE accept( Visitor< RETURN_TYPE, PARAM_TYPE > visitor, PARAM_TYPE arg )
     {
         return visitor.visit( this, arg );
-    }    
+    }
 }

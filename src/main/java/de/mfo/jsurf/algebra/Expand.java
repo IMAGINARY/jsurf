@@ -19,57 +19,57 @@ package de.mfo.jsurf.algebra;
 public class Expand extends AbstractVisitor< XYZPolynomial, Void >
 {
     private ValueCalculator valueCalculator;
-    
+
     public Expand()
     {
         this.valueCalculator = new ValueCalculator( 0.0, 0.0, 0.0 );
     }
-    
+
     public XYZPolynomial visit( PolynomialAddition pa, Void param )
     {
-        XYZPolynomial first = pa.firstOperand.accept( this,( Void ) null );
-        XYZPolynomial second = pa.secondOperand.accept( this,( Void ) null );        
+        XYZPolynomial first = pa.getFirstOperand().accept( this,( Void ) null );
+        XYZPolynomial second = pa.getSecondOperand().accept( this,( Void ) null );
         return first.add( second );
     }
-    
+
     public XYZPolynomial visit( PolynomialSubtraction ps, Void param )
     {
-        XYZPolynomial first = ps.firstOperand.accept( this,( Void ) null );
-        XYZPolynomial second = ps.secondOperand.accept( this,( Void ) null );
-        
+        XYZPolynomial first = ps.getFirstOperand().accept( this,( Void ) null );
+        XYZPolynomial second = ps.getSecondOperand().accept( this,( Void ) null );
+
         return first.sub( second );
     }
-    
+
     public XYZPolynomial visit( PolynomialMultiplication pm, Void param )
     {
-        XYZPolynomial first = pm.firstOperand.accept( this,( Void ) null );
-        XYZPolynomial second = pm.secondOperand.accept( this,( Void ) null );
-        
+        XYZPolynomial first = pm.getFirstOperand().accept( this,( Void ) null );
+        XYZPolynomial second = pm.getSecondOperand().accept( this,( Void ) null );
+
         return first.mult( second );
     }
-    
+
     public XYZPolynomial visit( PolynomialPower pp, Void param )
     {
-        XYZPolynomial base = pp.base.accept( this,( Void ) null );        
-        return base.pow( pp.exponent );
+        XYZPolynomial base = pp.getBase().accept( this,( Void ) null );
+        return base.pow( pp.getExponent() );
     }
-    
+
     public XYZPolynomial visit( PolynomialNegation pn, Void param )
     {
-        return pn.operand.accept( this,( Void ) null ).neg();
+        return pn.getOperand().accept( this,( Void ) null ).neg();
     }
-    
+
     public XYZPolynomial visit( PolynomialDoubleDivision pdd, Void param )
     {
-        XYZPolynomial dividend = pdd.dividend.accept( this,( Void ) null );
-        double divisor = pdd.divisor.accept( this.valueCalculator, ( Void ) null );
+        XYZPolynomial dividend = pdd.getDividend().accept( this,( Void ) null );
+        double divisor = pdd.getDivisor().accept( this.valueCalculator, ( Void ) null );
 
         return dividend.mult( 1.0 / divisor );
     }
-    
+
     public XYZPolynomial visit( PolynomialVariable pv, Void param )
     {
-        switch( pv.variable )
+        switch( pv.getVariable() )
         {
             case x:
                 return XYZPolynomial.X;
@@ -78,15 +78,15 @@ public class Expand extends AbstractVisitor< XYZPolynomial, Void >
             case z:
                 return XYZPolynomial.Z;
             default:
-                throw new UnsupportedOperationException();                
+                throw new UnsupportedOperationException();
         }
     }
-    
+
     public XYZPolynomial visit( DoubleBinaryOperation dbop, Void param )
     {
         return new XYZPolynomial( dbop.accept( this.valueCalculator, ( Void ) null ) );
     }
-    
+
     public XYZPolynomial visit( DoubleUnaryOperation duop, Void param )
     {
         return new XYZPolynomial( duop.accept( this.valueCalculator, ( Void ) null ) );
@@ -94,11 +94,11 @@ public class Expand extends AbstractVisitor< XYZPolynomial, Void >
 
     public XYZPolynomial visit( DoubleVariable dv, Void param )
     {
-        throw new UnsupportedOperationException( "no value has been assigned to parameter '" + dv.name + "'" );
+        throw new UnsupportedOperationException( "no value has been assigned to parameter '" + dv.getName() + "'" );
     }
-    
+
     public XYZPolynomial visit( DoubleValue dv, Void param )
     {
-        return new XYZPolynomial( dv.value );
+        return new XYZPolynomial( dv.getValue() );
     }
 }

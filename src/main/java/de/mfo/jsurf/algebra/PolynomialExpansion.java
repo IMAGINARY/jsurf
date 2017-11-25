@@ -23,18 +23,18 @@ public class PolynomialExpansion extends AbstractVisitor< UnivariatePolynomial, 
     private UnivariatePolynomial x;
     private UnivariatePolynomial y;
     private UnivariatePolynomial z;
-    
+
     private ValueCalculator valueCalculator;
-    
+
     public PolynomialExpansion( UnivariatePolynomial x, UnivariatePolynomial y, UnivariatePolynomial z )
     {
         this.x = x;
         this.y = y;
         this.z = z;
-        
+
         this.valueCalculator = new ValueCalculator( 0.0, 0.0, 0.0 );
     }
-    
+
     public UnivariatePolynomial getX()
     {
         return this.x;
@@ -44,27 +44,27 @@ public class PolynomialExpansion extends AbstractVisitor< UnivariatePolynomial, 
     {
         return this.y;
     }
-    
+
     public UnivariatePolynomial getZ()
     {
         return this.z;
-    }   
-    
+    }
+
     public void setX( UnivariatePolynomial x )
     {
         this.x = x;
     }
-    
+
     public void setY( UnivariatePolynomial y )
     {
         this.y = y;
     }
-    
+
     public void setZ( UnivariatePolynomial z )
     {
         this.z = z;
     }
-    
+
     public void setXYZ( UnivariatePolynomial x, UnivariatePolynomial y, UnivariatePolynomial z )
     {
         this.x = x;
@@ -74,37 +74,37 @@ public class PolynomialExpansion extends AbstractVisitor< UnivariatePolynomial, 
 
     public UnivariatePolynomial visit( PolynomialAddition pa, Void param )
     {
-        return pa.firstOperand.accept( this, ( Void ) null ).add( pa.secondOperand.accept( this, ( Void ) null ) );
+        return pa.getFirstOperand().accept( this, ( Void ) null ).add( pa.getSecondOperand().accept( this, ( Void ) null ) );
     }
-    
+
     public UnivariatePolynomial visit( PolynomialSubtraction ps, Void param )
     {
-        return ps.firstOperand.accept( this, ( Void ) null ).sub( ps.secondOperand.accept( this, ( Void ) null ) );
+        return ps.getFirstOperand().accept( this, ( Void ) null ).sub( ps.getSecondOperand().accept( this, ( Void ) null ) );
     }
-    
+
     public UnivariatePolynomial visit( PolynomialMultiplication pm, Void param )
     {
-        return pm.firstOperand.accept( this, ( Void ) null ).mult( pm.secondOperand.accept( this, ( Void ) null ) );
+        return pm.getFirstOperand().accept( this, ( Void ) null ).mult( pm.getSecondOperand().accept( this, ( Void ) null ) );
     }
-    
+
     public UnivariatePolynomial visit( PolynomialPower pp, Void param )
     {
-        return pp.base.accept( this, ( Void ) null ).pow( pp.exponent );
+        return pp.getBase().accept( this, ( Void ) null ).pow( pp.getExponent() );
     }
 
     public UnivariatePolynomial visit( PolynomialNegation pn, Void param )
     {
-        return pn.operand.accept( this,( Void ) null ).neg();
+        return pn.getOperand().accept( this,( Void ) null ).neg();
     }
 
     public UnivariatePolynomial visit( PolynomialDoubleDivision pdd, Void param )
     {
-        return pdd.dividend.accept( this,( Void ) null ).div( pdd.divisor.accept( this.valueCalculator, ( Void ) null ) );
+        return pdd.getDividend().accept( this,( Void ) null ).div( pdd.getDivisor().accept( this.valueCalculator, ( Void ) null ) );
     }
-    
+
     public UnivariatePolynomial visit( PolynomialVariable pv, Void param )
     {
-        switch( pv.variable )
+        switch( pv.getVariable() )
         {
             case x:
                 return this.x;
@@ -116,12 +116,12 @@ public class PolynomialExpansion extends AbstractVisitor< UnivariatePolynomial, 
                 throw new UnsupportedOperationException();
         }
     }
-    
+
     public UnivariatePolynomial visit( DoubleBinaryOperation dbop, Void param )
     {
         return new UnivariatePolynomial( dbop.accept( this.valueCalculator, ( Void ) null ) );
     }
-    
+
     public UnivariatePolynomial visit( DoubleUnaryOperation duop, Void param )
     {
         return new UnivariatePolynomial( duop.accept( this.valueCalculator, ( Void ) null ) );
@@ -131,9 +131,9 @@ public class PolynomialExpansion extends AbstractVisitor< UnivariatePolynomial, 
     {
         throw new UnsupportedOperationException();
     }
-    
+
     public UnivariatePolynomial visit( DoubleValue dv, Void param )
     {
-        return new UnivariatePolynomial( dv.value );
+        return new UnivariatePolynomial( dv.getValue() );
     }
 }

@@ -26,7 +26,7 @@ public interface Visitor< RETURN_TYPE, PARAM_TYPE >
     public RETURN_TYPE visit( PolynomialNegation pn, PARAM_TYPE param );
     public RETURN_TYPE visit( PolynomialDoubleDivision pdd, PARAM_TYPE param );
     public RETURN_TYPE visit( PolynomialVariable pv, PARAM_TYPE param );
-    
+
     public RETURN_TYPE visit( DoubleOperation dop, PARAM_TYPE param );
     public RETURN_TYPE visit( DoubleBinaryOperation dbop, PARAM_TYPE param );
     public RETURN_TYPE visit( DoubleUnaryOperation duop, PARAM_TYPE param );

@@ -18,15 +18,26 @@ package de.mfo.jsurf.algebra;
 
 public class PolynomialDoubleDivision implements PolynomialOperation
 {
-    public PolynomialOperation dividend;
-    public DoubleOperation divisor;
-    
+    private PolynomialOperation dividend;
+    private DoubleOperation divisor;
+    private boolean hasParentheses;
+
     public PolynomialDoubleDivision( PolynomialOperation dividend, DoubleOperation divisor )
+    {
+        this( dividend, divisor, false );
+    }
+
+    public PolynomialDoubleDivision( PolynomialOperation dividend, DoubleOperation divisor, boolean hasParentheses )
     {
         this.dividend = dividend;
         this.divisor = divisor;
+        this.hasParentheses = hasParentheses;
     }
-    
+
+    public PolynomialOperation getDividend() { return dividend; }
+    public DoubleOperation getDivisor() { return divisor; }
+    public boolean hasParentheses() { return hasParentheses; }
+
     public < RETURN_TYPE, PARAM_TYPE > RETURN_TYPE accept( Visitor< RETURN_TYPE, PARAM_TYPE > visitor, PARAM_TYPE arg )
     {
         return visitor.visit( this, arg );
