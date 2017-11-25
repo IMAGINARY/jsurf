@@ -19,10 +19,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - use Sun's javax.vecmath 1.5.2 implementation again
   (GPLv2 w/ classpath exception)
 
-## Added
+### Added
 - new command line option --gui
 
-## Fixed
+### Fixed
 - background threads do not prevent application from exiting anymore
 
 ## [0.2.0] - 2015-11-09
