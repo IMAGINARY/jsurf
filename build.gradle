@@ -1,5 +1,5 @@
 group = 'de.mfo.jsurf'
-version = '0.4.0'
+version = '0.4.1'
 
 apply plugin: 'application'
 apply plugin: 'java'

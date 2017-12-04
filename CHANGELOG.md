@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+## [0.4.1] - 2017-12-04
+### Fixed
+- allow to disable RotateSphericalDragger when mouse button is released
+
 ## [0.4.0] - 2017-11-25
 ### Changed
 - some backward compatibility for option machinery
@@ -73,8 +77,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - improved scheduling of parallel rendering tasks
 
-[unreleased]: https://github.com/IMAGINARY/jsurf/compare/v0.4.0...HEAD
-[0.3.0]: https://github.com/IMAGINARY/jsurf/compare/v0.3.0...v0.4.0
+[unreleased]: https://github.com/IMAGINARY/jsurf/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/IMAGINARY/jsurf/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/IMAGINARY/jsurf/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/IMAGINARY/jsurf/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/IMAGINARY/jsurf/compare/v0.1.4...v0.2.0
 [0.1.4]: https://github.com/IMAGINARY/jsurf/compare/v0.1.3...v0.1.4
