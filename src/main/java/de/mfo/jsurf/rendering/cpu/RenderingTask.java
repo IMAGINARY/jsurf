@@ -17,7 +17,6 @@
 package de.mfo.jsurf.rendering.cpu;
 
 import de.mfo.jsurf.algebra.*;
-import de.mfo.jsurf.debug.*;
 import de.mfo.jsurf.rendering.*;
 
 import javax.vecmath.*;
@@ -42,27 +41,14 @@ public class RenderingTask implements Callable<Boolean>
         this.yEnd = yEnd;
     }
 
-    public Boolean call()
-    {
-        try
-        {
+    public Boolean call() {
+        try {
             render();
             return true;
-        }
-        catch( RenderingInterruptedException rie )
-        {
-            // rendering interrupted .. that's ok
-            //System.err.println( "... interrupted" );
-        }
-        catch( Throwable t )
-        {
+        } catch( RenderingInterruptedException rie ) { // rendering interrupted .. that's ok
+        } catch( Throwable t ) {
             t.printStackTrace();
         }
-        finally
-        {
-        	//Thread.interrupted(); // clear the interruption flag
-        }
-        
         return false;
     }
 
@@ -78,87 +64,90 @@ public class RenderingTask implements Callable<Boolean>
         ColumnSubstitutorForGradient gcs;
     }
 
-    protected void render()
-    	throws RenderingInterruptedException
-    {
-        switch( dcsd.antiAliasingPattern )
-        {
-            case OG_1x1:
-            {
-                // no antialising -> sample pixel center
-                int internal_width = xEnd - xStart + 1;
-                int internal_height = yEnd - yStart + 1;
-                double u_start = dcsd.rayCreator.transformU( xStart / ( dcsd.width - 1.0 ) );
-                double v_start = dcsd.rayCreator.transformV( yStart / ( dcsd.height - 1.0 ) );
-                double u_incr = ( dcsd.rayCreator.getUInterval().y - dcsd.rayCreator.getUInterval().x ) / ( dcsd.width - 1.0 );
-                double v_incr = ( dcsd.rayCreator.getVInterval().y - dcsd.rayCreator.getVInterval().x ) / ( dcsd.height - 1.0 );
-                for( int y = 0; y < internal_height; y++ )
-                {
-                    double v = v_start + y * v_incr;
-                    ColumnSubstitutor scs = dcsd.surfaceRowSubstitutor.setV( v );
-                    ColumnSubstitutorForGradient gcs = dcsd.gradientRowSubstitutor.setV( v );
-            
-                    for( int x = 0; x < internal_width; x++ )
-                    {
-                        if( Thread.currentThread().isInterrupted() )
-                            throw new RenderingInterruptedException();
-                        double u = u_start + x * u_incr;
-                        dcsd.colorBuffer[ dcsd.width * ( yStart + y ) + xStart + x ] = tracePolynomial( scs, gcs, u, v ).get().getRGB();
-                        //dcsd.colorBuffer[ dcsd.width * y + x ] = traceRay( u, v ).get().getRGB();
-                    }
-                }
+    protected void render() throws RenderingInterruptedException {
+        switch( dcsd.antiAliasingPattern ) {
+            case OG_1x1: {
+                renderWithoutAliasing();
                 break;
             }
-            default:
-            {
-                // all other antialiasing modes
-                // first sample canvas at pixel corners and cast primary rays
-                int internal_width = xEnd - xStart + 2;
-                int internal_height = yEnd - yStart + 2;
-                Color3f[] internalColorBuffer = new Color3f[ internal_width * internal_height ];
-                
-                ColumnSubstitutor scs = null;
-                ColumnSubstitutorForGradient gcs = null;
-                HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
-                double u_start = dcsd.rayCreator.transformU( ( xStart - 0.5 ) / ( dcsd.width - 1.0 ) );
-                double v_start = dcsd.rayCreator.transformV( ( yStart - 0.5 ) / ( dcsd.height - 1.0 ) );
-                double u_incr = ( dcsd.rayCreator.getUInterval().y - dcsd.rayCreator.getUInterval().x ) / ( dcsd.width - 1.0 );
-                double v_incr = ( dcsd.rayCreator.getVInterval().y - dcsd.rayCreator.getVInterval().x ) / ( dcsd.height - 1.0 );
-                double v = 0.0;
-                for( int y = 0; y < internal_height; ++y )
-                {
-                    csp_hm.clear(); csp_hm.put( v, new ColumnSubstitutorPair( scs, gcs ) );
-
-                    v = v_start + y * v_incr;
-                    scs = dcsd.surfaceRowSubstitutor.setV( v );
-                    gcs = dcsd.gradientRowSubstitutor.setV( v );
-                    
-                    csp_hm.put( v, new ColumnSubstitutorPair( scs, gcs ) );
-
-                    for( int x = 0; x < internal_width; ++x )
-                    {
-                        if( Thread.currentThread().isInterrupted() )
-                            throw new RenderingInterruptedException();
-                        
-                        // current position on viewing plane
-                        double u = u_start + x * u_incr;
-                        // trace rays corresponding to (u,v)-coordinates on viewing plane
-
-                        internalColorBuffer[ y * internal_width + x ] = tracePolynomial( scs, gcs, u, v );
-                        if( x > 0 && y > 0 )
-                        {
-                            Color3f ulColor = internalColorBuffer[ y * internal_width + x - 1 ];
-                            Color3f urColor = internalColorBuffer[ y * internal_width + x ];
-                            Color3f llColor = internalColorBuffer[ ( y - 1 ) * internal_width + x - 1];
-                            Color3f lrColor = internalColorBuffer[ ( y - 1 ) * internal_width + x ];
-
-                            dcsd.colorBuffer[ ( yStart + y - 1 ) * dcsd.width + ( xStart + x - 1 ) ] = antiAliasPixel( u - u_incr, v - v_incr, u_incr, v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
-                        }
-                    }
-                }
+            default: {
+                renderWithAliasing();
             }
         }
     }
+
+	private void renderWithAliasing() {
+		// all other antialiasing modes
+		// first sample canvas at pixel corners and cast primary rays
+		int internal_width = xEnd - xStart + 2;
+		int internal_height = yEnd - yStart + 2;
+		Color3f[] internalColorBuffer = new Color3f[ internal_width * internal_height ];
+		
+		ColumnSubstitutor scs = null;
+		ColumnSubstitutorForGradient gcs = null;
+		HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
+		double u_start = dcsd.rayCreator.transformU( ( xStart - 0.5 ) / ( dcsd.width - 1.0 ) );
+		double v_start = dcsd.rayCreator.transformV( ( yStart - 0.5 ) / ( dcsd.height - 1.0 ) );
+		double u_incr = ( dcsd.rayCreator.getUInterval().y - dcsd.rayCreator.getUInterval().x ) / ( dcsd.width - 1.0 );
+		double v_incr = ( dcsd.rayCreator.getVInterval().y - dcsd.rayCreator.getVInterval().x ) / ( dcsd.height - 1.0 );
+		double v = 0.0;
+		for( int y = 0; y < internal_height; ++y )
+		{
+		    csp_hm.clear(); csp_hm.put( v, new ColumnSubstitutorPair( scs, gcs ) );
+
+		    v = v_start + y * v_incr;
+		    scs = dcsd.surfaceRowSubstitutor.setV( v );
+		    gcs = dcsd.gradientRowSubstitutor.setV( v );
+		    
+		    csp_hm.put( v, new ColumnSubstitutorPair( scs, gcs ) );
+
+		    for( int x = 0; x < internal_width; ++x )
+		    {
+		        if( Thread.currentThread().isInterrupted() )
+		            throw new RenderingInterruptedException();
+		        
+		        // current position on viewing plane
+		        double u = u_start + x * u_incr;
+		        // trace rays corresponding to (u,v)-coordinates on viewing plane
+
+		        internalColorBuffer[ y * internal_width + x ] = tracePolynomial( scs, gcs, u, v );
+		        if( x > 0 && y > 0 )
+		        {
+		            Color3f ulColor = internalColorBuffer[ y * internal_width + x - 1 ];
+		            Color3f urColor = internalColorBuffer[ y * internal_width + x ];
+		            Color3f llColor = internalColorBuffer[ ( y - 1 ) * internal_width + x - 1];
+		            Color3f lrColor = internalColorBuffer[ ( y - 1 ) * internal_width + x ];
+
+		            dcsd.colorBuffer[ ( yStart + y - 1 ) * dcsd.width + ( xStart + x - 1 ) ] = antiAliasPixel( u - u_incr, v - v_incr, u_incr, v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
+		        }
+		    }
+		}
+	}
+
+	private void renderWithoutAliasing() {
+		// no antialising -> sample pixel center
+		int internal_width = xEnd - xStart + 1;
+		int internal_height = yEnd - yStart + 1;
+		double u_start = dcsd.rayCreator.transformU( xStart / ( dcsd.width - 1.0 ) );
+		double v_start = dcsd.rayCreator.transformV( yStart / ( dcsd.height - 1.0 ) );
+		double u_incr = ( dcsd.rayCreator.getUInterval().y - dcsd.rayCreator.getUInterval().x ) / ( dcsd.width - 1.0 );
+		double v_incr = ( dcsd.rayCreator.getVInterval().y - dcsd.rayCreator.getVInterval().x ) / ( dcsd.height - 1.0 );
+		for( int y = 0; y < internal_height; y++ )
+		{
+		    double v = v_start + y * v_incr;
+		    ColumnSubstitutor scs = dcsd.surfaceRowSubstitutor.setV( v );
+		    ColumnSubstitutorForGradient gcs = dcsd.gradientRowSubstitutor.setV( v );
+         
+		    for( int x = 0; x < internal_width; x++ )
+		    {
+		        if( Thread.currentThread().isInterrupted() )
+		            throw new RenderingInterruptedException();
+		        double u = u_start + x * u_incr;
+		        dcsd.colorBuffer[ dcsd.width * ( yStart + y ) + xStart + x ] = tracePolynomial( scs, gcs, u, v ).get().getRGB();
+		        //dcsd.colorBuffer[ dcsd.width * y + x ] = traceRay( u, v ).get().getRGB();
+		    }
+		}
+	}
 
     private Color3f antiAliasPixel( double ll_u, double ll_v, double u_incr, double v_incr, AntiAliasingPattern aap, Color3f ulColor, Color3f urColor, Color3f llColor, Color3f lrColor, HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm )
     {
