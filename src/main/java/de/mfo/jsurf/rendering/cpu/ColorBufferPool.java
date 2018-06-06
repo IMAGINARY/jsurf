@@ -44,18 +44,20 @@ public class ColorBufferPool {
     	}
     }
 
-    public synchronized Color3f[] getBuffer(int size) {
+    public Color3f[] getBuffer(int size) {
     	size = powOf2Roundup(size);
     	int index = highestOneBit(size);
     	requestedBuffers++;
 
     	List<Color3f[]> bucket = bufferPool.get(index);
-    	if (dontPool || bucket.isEmpty()) {
-        	createdBuffers++;
-        	totalBufferSize += size;
-    		return new Color3f[size];
-    	} else
-    		return bucket.remove(bucket.size() - 1);
+    	synchronized (bucket) {
+        	if (dontPool || bucket.isEmpty()) {
+            	createdBuffers++;
+            	totalBufferSize += size;
+        		return new Color3f[size];
+        	} else
+        		return bucket.remove(bucket.size() - 1);
+    	}
     }
     
     /** Index of the highest bit set in the binary representation of an integer */
@@ -98,10 +100,13 @@ public class ColorBufferPool {
 	    return x+1;
 	}
 
-	public synchronized void releaseBuffer(Color3f[] buffer) {
+	public void releaseBuffer(Color3f[] buffer) {
     	int size = buffer.length;
     	int index = highestOneBit(size);
-    	bufferPool.get(index).add(buffer);
+    	List<Color3f[]> bucket = bufferPool.get(index);
+    	synchronized (bucket) {
+        	bucket.add(buffer);
+    	}
     }
 	
 	public String getPoolStatistics() {
