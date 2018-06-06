@@ -93,7 +93,7 @@ public class RenderingTask implements Callable<Boolean>
 
 		double vOld = 0;
 		double v = v_start;
-
+	    int internalBufferIndex = 0;
 		for( int y = 0; y < internal_height; ++y )
 		{
 		    csp_hm.clear();
@@ -112,18 +112,19 @@ public class RenderingTask implements Callable<Boolean>
 		            throw new RenderingInterruptedException();
 		        
 		        // trace rays corresponding to (u,v)-coordinates on viewing plane
-		        internalColorBuffer[ y * internal_width + x ] = tracePolynomial( scs, gcs, u, v );
+		        internalColorBuffer[ internalBufferIndex ] = tracePolynomial( scs, gcs, u, v );
 		        if( x > 0 && y > 0 )
 		        {
-		            Color3f ulColor = internalColorBuffer[ y * internal_width + x - 1 ];
-		            Color3f urColor = internalColorBuffer[ y * internal_width + x ];
-		            Color3f llColor = internalColorBuffer[ ( y - 1 ) * internal_width + x - 1];
-		            Color3f lrColor = internalColorBuffer[ ( y - 1 ) * internal_width + x ];
+		            Color3f urColor = internalColorBuffer[ internalBufferIndex ];
+		            Color3f ulColor = internalColorBuffer[ internalBufferIndex - 1 ];
+		            Color3f lrColor = internalColorBuffer[ internalBufferIndex - internal_width ];
+		            Color3f llColor = internalColorBuffer[ internalBufferIndex - internal_width - 1 ];
 
 		            dcsd.colorBuffer[ ( yStart + y - 1 ) * dcsd.width + ( xStart + x - 1 ) ] = antiAliasPixel( uOld, vOld, u_incr, v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
 		        }
 		        uOld = u;
 		        u += u_incr;
+		        internalBufferIndex++;
 		    }
 		    vOld = v;
 		    v += v_incr;
