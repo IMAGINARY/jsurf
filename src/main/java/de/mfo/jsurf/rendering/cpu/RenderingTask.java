@@ -251,21 +251,16 @@ public class RenderingTask implements Callable<Boolean>
                     interval.x = Math.max( interval.x, eyeLocation );
 
                 // intersect ray with surface and shade pixel
-                //double[] hits = hits = dcsd.realRootFinder.findAllRootsIn( surfacePoly, interval.x, interval.y );
-                double[] hits = { dcsd.realRootFinder.findFirstRootIn( surfacePoly, interval.x, interval.y ) };
-                if( java.lang.Double.isNaN( hits[ 0 ]  ))
-                    hits = new double[ 0 ];
-                for( double hit : hits )
+                double hit = dcsd.realRootFinder.findFirstRootIn( surfacePoly, interval.x, interval.y );
+                if( !java.lang.Double.isNaN( hit ) && dcsd.rayClipper.clipPoint( surfaceRay.at( hit ), true ) )
                 {
-                    if( dcsd.rayClipper.clipPoint( surfaceRay.at( hit ), true ) )
-                    {
-                        if( gradientPolys == null )
-                            gradientPolys = gcs.setU( u );
-                        Vector3d n_surfaceSpace = gradientPolys.setT( hit );
-                        Vector3d n_cameraSpace = dcsd.rayCreator.surfaceSpaceNormalToCameraSpaceNormal( n_surfaceSpace );
+                    if( gradientPolys == null )
+                        gradientPolys = gcs.setU( u );
 
-                        return shade( ray.at( hit ), n_cameraSpace, eye );
-                    }
+                    Vector3d n_surfaceSpace = gradientPolys.setT( hit );
+                    Vector3d n_cameraSpace = dcsd.rayCreator.surfaceSpaceNormalToCameraSpaceNormal( n_surfaceSpace );
+
+                    return shade( ray.at( hit ), n_cameraSpace, eye );
                 }
             }
         }
