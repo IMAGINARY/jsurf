@@ -32,7 +32,9 @@ public class RenderingTask implements Callable<Boolean>
     private int yStart;
     private int xEnd;
     private int yEnd;
-    private DrawcallStaticData dcsd;
+    private final DrawcallStaticData dcsd;
+    private final Shader frontShader;
+    private final Shader backShader;
 
     public RenderingTask( DrawcallStaticData dcsd, int xStart, int yStart, int xEnd, int yEnd )
     {
@@ -41,6 +43,8 @@ public class RenderingTask implements Callable<Boolean>
         this.yStart = yStart;
         this.xEnd = xEnd;
         this.yEnd = yEnd;
+        this.frontShader = new Shader(dcsd.frontAmbientColor, dcsd.lightSources, dcsd.frontLightProducts);
+        this.backShader = new Shader(dcsd.backAmbientColor, dcsd.lightSources, dcsd.backLightProducts);
     }
 
     public Boolean call() {
@@ -77,18 +81,14 @@ public class RenderingTask implements Callable<Boolean>
                 renderWithoutAliasing();
                 break;
             }
-            default: {
+    		// all other antialiasing modes
+            default:
                 renderWithAliasing(colorBuffer, width, height);
-            }
         }
     }
-    
-
 
 	private void renderWithAliasing(Color3f[] internalColorBuffer, int width, int height) {
-		// all other antialiasing modes
 		// first sample canvas at pixel corners and cast primary rays
-		
 		ColumnSubstitutor scs = null;
 		ColumnSubstitutorForGradient gcs = null;
 		HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
@@ -137,8 +137,8 @@ public class RenderingTask implements Callable<Boolean>
 		}
 	}
 
+	/** no antialising -> sample pixel center */
 	private void renderWithoutAliasing() {
-		// no antialising -> sample pixel center
 		int internal_width = xEnd - xStart + 1;
 		int internal_height = yEnd - yStart + 1;
 		double u_start = dcsd.rayCreator.transformU( xStart / ( dcsd.width - 1.0 ) );
@@ -271,6 +271,35 @@ public class RenderingTask implements Callable<Boolean>
         }
         return dcsd.backgroundColor;
     }
+
+    /**
+     * Calculates the shading in camera space
+     * @param p The hit point on the surface in camera space.
+     * @param n The surface normal at the hit point in camera space.
+     * @param eye The eye point in camera space.
+     * @return
+     */
+    protected Color3f shade( Point3d p, Vector3d n, Point3d eye )
+    {        
+        // normalize only if point is not singular
+        float nLength = (float) n.length();
+        if( nLength != 0.0f )
+            n.scale( 1.0f / nLength );
+
+        // compute view vector
+        Vector3d v = new Vector3d( eye );
+        v.sub( p );
+        v.normalize();
+
+    	// compute, which material to use
+        Shader shader = frontShader;
+        if( n.dot( v ) <= 0.0f ) {
+        	shader = backShader;
+            n.negate();
+        }
+
+        return shader.shade(p, v, n);
+    }
     
 //    private Color3f traceRay( double u, double v )
 //    {
@@ -358,90 +387,6 @@ public class RenderingTask implements Callable<Boolean>
 	return ( 3.0 * dist ) % 2.0 < 1.0;
     }
 
-    /**
-     * Calculates the shading in camera space
-     * @param p The hit point on the surface in camera space.
-     * @param n The surface normal at the hit point in camera space.
-     * @param eye The eye point in camera space.
-     * @return
-     */
-    protected Color3f shade( Point3d p, Vector3d n, Point3d eye )
-    {        
-        // normalize only if point is not singular
-        float nLength = (float) n.length();
-        if( nLength != 0.0f )
-            n.scale( 1.0f / nLength );
-
-        // compute view vector
-        Vector3d v = new Vector3d( eye );
-        v.sub( p );
-        v.normalize();
-/*
-        // special coloring for blowup-visualization
-        if( n.dot( v ) < 0.0f )
-            n.negate();
-        if( blowUpChooseMaterial( dcsd.rayCreator.cameraSpaceToSurfaceSpace( p ) ) )
-        {
-            return shadeWithMaterial( p, v, n, dcsd.frontAmbientColor, dcsd.frontLightProducts );
-        }
-        else
-        {
-            return shadeWithMaterial( p, v, n, dcsd.backAmbientColor, dcsd.backLightProducts );
-        }
-*/
-        // compute, which material to use
-        if( n.dot( v ) > 0.0f )
-        {
-            return shadeWithMaterial( p, v, n, dcsd.frontAmbientColor, dcsd.frontLightProducts );
-        }
-        else
-        {
-            n.negate();
-            return shadeWithMaterial( p, v, n, dcsd.backAmbientColor, dcsd.backLightProducts );
-        }
-    }
-
-    /**
-     * Shades a point with the same algorithm used by the
-     * {@link <a href="http://surf.sourceforge.net">surf raytracer</a>}.
-     * @param hitPoint Intersection point.
-     * @param v View vector (from intersection point to eye).
-     * @param n Surface normal.
-     * @param material Surface material.
-     * @return
-     */
-    protected Color3f shadeWithMaterial( Point3d hitPoint, Vector3d v, Vector3d n, Color3f ambientColor, LightProducts[] lightProducts )
-    {
-        Vector3d l = new Vector3d();
-        Vector3d h = new Vector3d();
-
-        Color3f color = new Color3f( ambientColor );
-
-        for( int i = 0; i < dcsd.lightSources.length; i++ )
-        {
-            LightSource lightSource = dcsd.lightSources[i];
-
-            l.sub( lightSource.getPosition(), hitPoint );
-            l.normalize();
-
-            float lambertTerm = (float) n.dot( l );
-            if( lambertTerm > 0.0f )
-            {
-                // compute diffuse color component
-                color.scaleAdd( lambertTerm, lightProducts[i].getDiffuseProduct(), color );
-
-                // compute specular color component
-                h.add( l, v );
-                h.normalize();
-
-                color.scaleAdd( ( float ) Math.pow( Math.max( 0.0f, n.dot( h ) ), lightProducts[i].getMaterial().getShininess() ), lightProducts[i].getSpecularProduct(), color );
-            }
-        }
-
-        color.clampMax( 1.0f );
-
-        return color;
-    }
 }
     
 
