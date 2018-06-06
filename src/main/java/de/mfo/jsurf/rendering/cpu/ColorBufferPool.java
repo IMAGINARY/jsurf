@@ -5,16 +5,41 @@ import java.util.List;
 
 import javax.vecmath.Color3f;
 
+/**
+ * The buffers returned from this class will not have the exact size requested, but the
+ * size of the minimum power of two higher (or equal) to it.<br/>
+ * For example, if asked for a buffer for 457 colors, it will return one of size 512.<br/>
+ * <br/>
+ * This will waste memory, but allows to reuse the buffers for different parts, and also 
+ * when the rendering size changes. It also keeps them nicely aligned in memory, which
+ * could produce more speed improvements.
+ * 
+ * @author Sebastian
+ *
+ */
 public class ColorBufferPool {
     
+	// Should be an array of lists, but Java does not allow arrays of generic types
     private List<List<Color3f[]>> bufferPool;
-    private int createdBuffers = 0;
-    private int getBufferCalls = 0;
-    private int totalBufferSize = 0;
+    private boolean dontPool = false;
 
+    // Usage statistics
+    private int createdBuffers = 0;
+    private int requestedBuffers = 0;
+    private int totalBufferSize = 0;
+    
+    // the biggest buffer it can hold is of size 2^32 == 2^16 x 2^16, an area of 65536 x 65536
+    private static final int MAX_POWER_OF_TWO = 32;
+
+    public static ColorBufferPool createDummyPool() {
+    	ColorBufferPool pool = new ColorBufferPool();
+    	pool.dontPool = true;
+    	return pool;
+    }
+    
     public ColorBufferPool() {
-    	bufferPool = new ArrayList<List<Color3f[]>>(32);
-    	for (int i = 0 ; i < 32 ; i++) {
+    	bufferPool = new ArrayList<List<Color3f[]>>(MAX_POWER_OF_TWO);
+    	for (int i = 0 ; i < MAX_POWER_OF_TWO ; i++) {
     		bufferPool.add(new ArrayList<Color3f[]>());
     	}
     }
@@ -22,18 +47,18 @@ public class ColorBufferPool {
     public synchronized Color3f[] getBuffer(int size) {
     	size = powOf2Roundup(size);
     	int index = highestOneBit(size);
-    	getBufferCalls++;
+    	requestedBuffers++;
 
     	List<Color3f[]> bucket = bufferPool.get(index);
-    	if (bucket.isEmpty()) {
+    	if (dontPool || bucket.isEmpty()) {
         	createdBuffers++;
         	totalBufferSize += size;
-        	System.out.println("Created color buffers size " + size + ". Call / created: " + getBufferCalls + "/" + createdBuffers + ". Total size: " + totalBufferSize);
     		return new Color3f[size];
     	} else
-    		return bucket.remove(0);
+    		return bucket.remove(bucket.size() - 1);
     }
     
+    /** Index of the highest bit set in the binary representation of an integer */
     public static int highestOneBit(int x) {
     	int index = 0;
     	if ((x & 0xFFFF0000) != 0) {
@@ -59,6 +84,7 @@ public class ColorBufferPool {
     }
     
     // https://stackoverflow.com/questions/364985/algorithm-for-finding-the-smallest-power-of-two-thats-greater-or-equal-to-a-giv
+    /** Minimum power of two bigger or equal to value */
     private int powOf2Roundup(int x) {
 	    if (x < 0)
 	        return 0;
@@ -75,13 +101,10 @@ public class ColorBufferPool {
 	public synchronized void releaseBuffer(Color3f[] buffer) {
     	int size = buffer.length;
     	int index = highestOneBit(size);
-//    	clearBuffer(buffer);
     	bufferPool.get(index).add(buffer);
     }
 	
-	private void clearBuffer(Color3f[] buffer) {
-		for (int i = 0 ; i < buffer.length ; i++)
-			buffer[i].set(0f, 0f, 0f);
+	public String getPoolStatistics() {
+		return "Requests / created: " + requestedBuffers + "/" + createdBuffers + ". Total size: " + totalBufferSize;		
 	}
-	
 }
