@@ -90,26 +90,28 @@ public class RenderingTask implements Callable<Boolean>
 		double v_start = dcsd.rayCreator.transformV( ( yStart - 0.5 ) / ( dcsd.height - 1.0 ) );
 		double u_incr = ( dcsd.rayCreator.getUInterval().y - dcsd.rayCreator.getUInterval().x ) / ( dcsd.width - 1.0 );
 		double v_incr = ( dcsd.rayCreator.getVInterval().y - dcsd.rayCreator.getVInterval().x ) / ( dcsd.height - 1.0 );
-		double v = 0.0;
+
+		double vOld = 0;
+		double v = v_start;
+
 		for( int y = 0; y < internal_height; ++y )
 		{
-		    csp_hm.clear(); csp_hm.put( v, new ColumnSubstitutorPair( scs, gcs ) );
+		    csp_hm.clear();
+		    csp_hm.put( vOld, new ColumnSubstitutorPair( scs, gcs ) );
 
-		    v = v_start + y * v_incr;
 		    scs = dcsd.surfaceRowSubstitutor.setV( v );
 		    gcs = dcsd.gradientRowSubstitutor.setV( v );
 		    
 		    csp_hm.put( v, new ColumnSubstitutorPair( scs, gcs ) );
 
+		    double uOld = 0;
+		    double u = u_start;
 		    for( int x = 0; x < internal_width; ++x )
 		    {
 		        if( Thread.currentThread().isInterrupted() )
 		            throw new RenderingInterruptedException();
 		        
-		        // current position on viewing plane
-		        double u = u_start + x * u_incr;
 		        // trace rays corresponding to (u,v)-coordinates on viewing plane
-
 		        internalColorBuffer[ y * internal_width + x ] = tracePolynomial( scs, gcs, u, v );
 		        if( x > 0 && y > 0 )
 		        {
@@ -118,9 +120,13 @@ public class RenderingTask implements Callable<Boolean>
 		            Color3f llColor = internalColorBuffer[ ( y - 1 ) * internal_width + x - 1];
 		            Color3f lrColor = internalColorBuffer[ ( y - 1 ) * internal_width + x ];
 
-		            dcsd.colorBuffer[ ( yStart + y - 1 ) * dcsd.width + ( xStart + x - 1 ) ] = antiAliasPixel( u - u_incr, v - v_incr, u_incr, v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
+		            dcsd.colorBuffer[ ( yStart + y - 1 ) * dcsd.width + ( xStart + x - 1 ) ] = antiAliasPixel( uOld, vOld, u_incr, v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
 		        }
+		        uOld = u;
+		        u += u_incr;
 		    }
+		    vOld = v;
+		    v += v_incr;
 		}
 	}
 
