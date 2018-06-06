@@ -232,7 +232,6 @@ public class RenderingTask implements Callable<Boolean>
         Ray clippingRay = dcsd.rayCreator.createClippingSpaceRay( u, v );
         Ray surfaceRay = dcsd.rayCreator.createSurfaceSpaceRay( u, v );
 
-        Point3d eye = ray.at( dcsd.rayCreator.getEyeLocationOnRay() );
         UnivariatePolynomialVector3d gradientPolys = null;
 
         // optimize rays and root-finder parameters
@@ -260,7 +259,7 @@ public class RenderingTask implements Callable<Boolean>
                     Vector3d n_surfaceSpace = gradientPolys.setT( hit );
                     Vector3d n_cameraSpace = dcsd.rayCreator.surfaceSpaceNormalToCameraSpaceNormal( n_surfaceSpace );
 
-                    return shade( ray.at( hit ), n_cameraSpace, eye );
+                    return shade( ray, hit, n_cameraSpace );
                 }
             }
         }
@@ -269,31 +268,25 @@ public class RenderingTask implements Callable<Boolean>
 
     /**
      * Calculates the shading in camera space
-     * @param p The hit point on the surface in camera space.
-     * @param n The surface normal at the hit point in camera space.
-     * @param eye The eye point in camera space.
-     * @return
      */
-    protected Color3f shade( Point3d p, Vector3d n, Point3d eye )
-    {        
+    protected Color3f shade( Ray ray, double hit, Vector3d cameraSpaceNormal )
+    {
         // normalize only if point is not singular
-        float nLength = (float) n.length();
+        float nLength = (float) cameraSpaceNormal.length();
         if( nLength != 0.0f )
-            n.scale( 1.0f / nLength );
+            cameraSpaceNormal.scale( 1.0f / nLength );
 
-        // compute view vector
-        Vector3d v = new Vector3d( eye );
-        v.sub( p );
-        v.normalize();
+        Vector3d view = new Vector3d(-ray.d.x, -ray.d.y, -ray.d.z);
+        // TODO: not normalizing the view does not seem to affect the rendered result, maybe it can be avoided
+        view.normalize();
 
-    	// compute, which material to use
         Shader shader = frontShader;
-        if( n.dot( v ) <= 0.0f ) {
+        if( cameraSpaceNormal.dot( view ) <= 0.0f ) {
         	shader = backShader;
-            n.negate();
+            cameraSpaceNormal.negate();
         }
 
-        return shader.shade(p, v, n);
+        return shader.shade(ray.at(hit), view, cameraSpaceNormal);
     }
     
 //    private Color3f traceRay( double u, double v )
