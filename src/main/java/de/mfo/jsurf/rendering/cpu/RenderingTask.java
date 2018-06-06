@@ -42,12 +42,17 @@ public class RenderingTask implements Callable<Boolean>
     }
 
     public Boolean call() {
+		int width = xEnd - xStart + 2;
+		int height = yEnd - yStart + 2;
+		Color3f[] colorBuffer = getBuffer(width * height);
         try {
-            render();
+            render(colorBuffer, width, height);
             return true;
         } catch( RenderingInterruptedException rie ) { // rendering interrupted .. that's ok
         } catch( Throwable t ) {
             t.printStackTrace();
+        } finally {
+            releaseBuffer(colorBuffer);
         }
         return false;
     }
@@ -64,24 +69,29 @@ public class RenderingTask implements Callable<Boolean>
         ColumnSubstitutorForGradient gcs;
     }
 
-    protected void render() throws RenderingInterruptedException {
+    protected void render(Color3f[] colorBuffer, int width, int height) throws RenderingInterruptedException {
         switch( dcsd.antiAliasingPattern ) {
             case OG_1x1: {
                 renderWithoutAliasing();
                 break;
             }
             default: {
-                renderWithAliasing();
+                renderWithAliasing(colorBuffer, width, height);
             }
         }
     }
+    
+    private Color3f[] getBuffer(int size) {
+    	return new Color3f[size];
+    }
+    
+    private void releaseBuffer(Color3f[] buffer) {
+    	
+    }
 
-	private void renderWithAliasing() {
+	private void renderWithAliasing(Color3f[] internalColorBuffer, int width, int height) {
 		// all other antialiasing modes
 		// first sample canvas at pixel corners and cast primary rays
-		int internal_width = xEnd - xStart + 2;
-		int internal_height = yEnd - yStart + 2;
-		Color3f[] internalColorBuffer = new Color3f[ internal_width * internal_height ];
 		
 		ColumnSubstitutor scs = null;
 		ColumnSubstitutorForGradient gcs = null;
@@ -94,7 +104,7 @@ public class RenderingTask implements Callable<Boolean>
 		double vOld = 0;
 		double v = v_start;
 	    int internalBufferIndex = 0;
-		for( int y = 0; y < internal_height; ++y )
+		for( int y = 0; y < height; ++y )
 		{
 		    csp_hm.clear();
 		    csp_hm.put( vOld, new ColumnSubstitutorPair( scs, gcs ) );
@@ -106,7 +116,7 @@ public class RenderingTask implements Callable<Boolean>
 
 		    double uOld = 0;
 		    double u = u_start;
-		    for( int x = 0; x < internal_width; ++x )
+		    for( int x = 0; x < width; ++x )
 		    {
 		        if( Thread.currentThread().isInterrupted() )
 		            throw new RenderingInterruptedException();
@@ -117,8 +127,8 @@ public class RenderingTask implements Callable<Boolean>
 		        {
 		            Color3f urColor = internalColorBuffer[ internalBufferIndex ];
 		            Color3f ulColor = internalColorBuffer[ internalBufferIndex - 1 ];
-		            Color3f lrColor = internalColorBuffer[ internalBufferIndex - internal_width ];
-		            Color3f llColor = internalColorBuffer[ internalBufferIndex - internal_width - 1 ];
+		            Color3f lrColor = internalColorBuffer[ internalBufferIndex - width ];
+		            Color3f llColor = internalColorBuffer[ internalBufferIndex - width - 1 ];
 
 		            dcsd.colorBuffer[ ( yStart + y - 1 ) * dcsd.width + ( xStart + x - 1 ) ] = antiAliasPixel( uOld, vOld, u_incr, v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
 		        }
