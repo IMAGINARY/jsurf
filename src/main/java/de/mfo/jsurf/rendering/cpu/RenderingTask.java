@@ -25,6 +25,8 @@ import java.util.*;
 
 public class RenderingTask implements Callable<Boolean>
 {
+	static ColorBufferPool bufferPool = new ColorBufferPool();
+	
     // initialized by the constructor
     private int xStart;
     private int yStart;
@@ -44,7 +46,7 @@ public class RenderingTask implements Callable<Boolean>
     public Boolean call() {
 		int width = xEnd - xStart + 2;
 		int height = yEnd - yStart + 2;
-		Color3f[] colorBuffer = getBuffer(width * height);
+		Color3f[] colorBuffer = bufferPool.getBuffer(width * height);
         try {
             render(colorBuffer, width, height);
             return true;
@@ -52,7 +54,7 @@ public class RenderingTask implements Callable<Boolean>
         } catch( Throwable t ) {
             t.printStackTrace();
         } finally {
-            releaseBuffer(colorBuffer);
+        	bufferPool.releaseBuffer(colorBuffer);
         }
         return false;
     }
@@ -81,13 +83,7 @@ public class RenderingTask implements Callable<Boolean>
         }
     }
     
-    private Color3f[] getBuffer(int size) {
-    	return new Color3f[size];
-    }
-    
-    private void releaseBuffer(Color3f[] buffer) {
-    	
-    }
+
 
 	private void renderWithAliasing(Color3f[] internalColorBuffer, int width, int height) {
 		// all other antialiasing modes
