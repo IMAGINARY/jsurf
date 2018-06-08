@@ -52,7 +52,8 @@ public class RenderingTask implements Callable<Boolean>
 		int height = yEnd - yStart + 2;
 		Color3f[] colorBuffer = bufferPool.getBuffer(width * height);
         try {
-            render(colorBuffer, width, height);
+    		PixelStep step = new PixelStep(dcsd, xStart, yStart, width, height);
+            render(colorBuffer, step);
             return true;
         } catch( RenderingInterruptedException rie ) { // rendering interrupted .. that's ok
         } catch( Throwable t ) {
@@ -75,15 +76,15 @@ public class RenderingTask implements Callable<Boolean>
         ColumnSubstitutorForGradient gcs;
     }
 
-    protected void render(Color3f[] colorBuffer, int width, int height) throws RenderingInterruptedException {
+    protected void render(Color3f[] colorBuffer, PixelStep step) throws RenderingInterruptedException {
         switch( dcsd.antiAliasingPattern ) {
             case OG_1x1: {
-                renderWithoutAliasing(width, height);
+                renderWithoutAliasing(step);
                 break;
             }
     		// all other antialiasing modes
             default:
-                renderWithAliasing(colorBuffer, width, height);
+                renderWithAliasing(colorBuffer, step);
         }
     }
 
@@ -92,17 +93,23 @@ public class RenderingTask implements Callable<Boolean>
      *
      */
 	private static class PixelStep {
-		public final double u_start;
-		public final double v_start;
-		public final double u_incr;
-		public final double v_incr;
+		private final double u_start;
+		private final double v_start;
+		private final double u_incr;
+		private final double v_incr;
+		
+		public final int width;
+		public final int height;
 		
 		public double v;
 		public double u;
 		public double vOld;
 		public double uOld;
+
+		public int colorBufferIndex;
+		private final int colorBufferVStep;
 		
-		public PixelStep(DrawcallStaticData dcsd, int xStart, int yStart) {
+		public PixelStep(DrawcallStaticData dcsd, int xStart, int yStart, int width, int height) {
 			RayCreator rayCreator = dcsd.rayCreator;
 			Vector2d uInterval = rayCreator.getUInterval();
 			Vector2d vInterval = rayCreator.getVInterval();
@@ -111,6 +118,10 @@ public class RenderingTask implements Callable<Boolean>
 			this.u_incr = ( uInterval.y - uInterval.x ) / ( dcsd.width - 1.0 );
 			this.v_incr = ( vInterval.y - vInterval.x ) / ( dcsd.height - 1.0 );
 			
+			this.width = width;
+			this.height = height;
+			this.colorBufferIndex = (yStart - 1) * dcsd.width + xStart - 1;
+			this.colorBufferVStep = dcsd.width - width;
 			reset();
 		}
 
@@ -125,6 +136,7 @@ public class RenderingTask implements Callable<Boolean>
 		public void stepU() {
 	        uOld = u;
 	        u += u_incr;
+	        colorBufferIndex++;
 		}
 		
 		public void stepV() {
@@ -133,18 +145,18 @@ public class RenderingTask implements Callable<Boolean>
 
 			uOld = 0;
 			u = u_start;
+			colorBufferIndex += colorBufferVStep;
 		}
 	}
 
-	private void renderWithAliasing(Color3f[] internalColorBuffer, int width, int height) {
+	private void renderWithAliasing(Color3f[] internalColorBuffer, PixelStep step) {
 		// first sample canvas at pixel corners and cast primary rays
 		ColumnSubstitutor scs = null;
 		ColumnSubstitutorForGradient gcs = null;
 		HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
-		PixelStep step = new PixelStep(dcsd, xStart, yStart);
 
 	    int internalBufferIndex = 0;
-		for( int y = 0; y < height; ++y )
+		for( int y = 0; y < step.height; ++y )
 		{
 		    csp_hm.clear();
 		    csp_hm.put( step.vOld, new ColumnSubstitutorPair( scs, gcs ) );
@@ -154,7 +166,7 @@ public class RenderingTask implements Callable<Boolean>
 		    
 		    csp_hm.put( step.v, new ColumnSubstitutorPair( scs, gcs ) );
 
-		    for( int x = 0; x < width; ++x )
+		    for( int x = 0; x < step.width; ++x )
 		    {
 		        if( Thread.currentThread().isInterrupted() )
 		            throw new RenderingInterruptedException();
@@ -165,10 +177,10 @@ public class RenderingTask implements Callable<Boolean>
 		        {
 		            Color3f urColor = internalColorBuffer[ internalBufferIndex ];
 		            Color3f ulColor = internalColorBuffer[ internalBufferIndex - 1 ];
-		            Color3f lrColor = internalColorBuffer[ internalBufferIndex - width ];
-		            Color3f llColor = internalColorBuffer[ internalBufferIndex - width - 1 ];
+		            Color3f lrColor = internalColorBuffer[ internalBufferIndex - step.width ];
+		            Color3f llColor = internalColorBuffer[ internalBufferIndex - step.width - 1 ];
 
-		            dcsd.colorBuffer[ ( yStart + y - 1 ) * dcsd.width + ( xStart + x - 1 ) ] = antiAliasPixel( step.uOld, step.vOld, step.u_incr, step.v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
+		            dcsd.colorBuffer[ step.colorBufferIndex ] = antiAliasPixel( step.uOld, step.vOld, step.u_incr, step.v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
 		        }
 		        step.stepU();
 		        internalBufferIndex++;
@@ -178,20 +190,19 @@ public class RenderingTask implements Callable<Boolean>
 	}
 
 	/** no antialising -> sample pixel center */
-	private void renderWithoutAliasing(int width, int height) {
-		PixelStep step = new PixelStep(dcsd, xStart, yStart);
+	private void renderWithoutAliasing(PixelStep step) {
 
-		for( int y = 0; y < height; y++ )
+		for( int y = 0; y < step.height; y++ )
 		{
 		    ColumnSubstitutor scs = dcsd.surfaceRowSubstitutor.setV( step.v );
 		    ColumnSubstitutorForGradient gcs = dcsd.gradientRowSubstitutor.setV( step.v );
          
-		    for( int x = 0; x < width; x++ )
+		    for( int x = 0; x < step.width; x++ )
 		    {
 		        if( Thread.currentThread().isInterrupted() )
 		            throw new RenderingInterruptedException();
 
-		        dcsd.colorBuffer[ dcsd.width * ( yStart + y ) + xStart + x ] = tracePolynomial( scs, gcs, step.u, step.v ).get().getRGB();
+		        dcsd.colorBuffer[ step.colorBufferIndex ] = tracePolynomial( scs, gcs, step.u, step.v ).get().getRGB();
 			    step.stepU();
 		    }
 			step.stepV();
