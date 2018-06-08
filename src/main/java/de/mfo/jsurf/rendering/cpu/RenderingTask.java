@@ -87,7 +87,7 @@ public class RenderingTask implements Callable<Boolean>
         }
     }
 
-	private class PixelStep {
+	private static class PixelStep {
 		public final double u_start;
 		public final double v_start;
 		public final double u_incr;
@@ -99,28 +99,16 @@ public class RenderingTask implements Callable<Boolean>
 			this.u_incr = u_incr;
 			this.v_incr = v_incr;
 		}
-	}
-
-	private PixelStep stepsWithAliasing() {
-		RayCreator rayCreator = dcsd.rayCreator;
-		Vector2d uInterval = rayCreator.getUInterval();
-		Vector2d vInterval = rayCreator.getVInterval();
-		double u_start = rayCreator.transformU( ( xStart - 0.5 ) / ( dcsd.width - 1.0 ) );
-		double v_start = rayCreator.transformV( ( yStart - 0.5 ) / ( dcsd.height - 1.0 ) );
-		double u_incr = ( uInterval.y - uInterval.x ) / ( dcsd.width - 1.0 );
-		double v_incr = ( vInterval.y - vInterval.x ) / ( dcsd.height - 1.0 );
-		return new PixelStep(u_start, v_start, u_incr, v_incr);
-	}
-	
-	private PixelStep stepsWithoutAliasing() {
-		RayCreator rayCreator = dcsd.rayCreator;
-		Vector2d uInterval = rayCreator.getUInterval();
-		Vector2d vInterval = rayCreator.getVInterval();
-		double u_start = rayCreator.transformU( xStart / ( dcsd.width - 1.0 ) );
-		double v_start = rayCreator.transformV( yStart / ( dcsd.height - 1.0 ) );
-		double u_incr = ( uInterval.y - uInterval.x ) / ( dcsd.width - 1.0 );
-		double v_incr = ( vInterval.y - vInterval.x ) / ( dcsd.height - 1.0 );
-		return new PixelStep(u_start, v_start, u_incr, v_incr);
+		
+		private PixelStep(DrawcallStaticData dcsd, int xStart, int yStart) {
+			RayCreator rayCreator = dcsd.rayCreator;
+			Vector2d uInterval = rayCreator.getUInterval();
+			Vector2d vInterval = rayCreator.getVInterval();
+			this.u_start = rayCreator.transformU( ( xStart - 0.5 ) / ( dcsd.width - 1.0 ) );
+			this.v_start = rayCreator.transformV( ( yStart - 0.5 ) / ( dcsd.height - 1.0 ) );
+			this.u_incr = ( uInterval.y - uInterval.x ) / ( dcsd.width - 1.0 );
+			this.v_incr = ( vInterval.y - vInterval.x ) / ( dcsd.height - 1.0 );
+		}
 	}
 
 	private void renderWithAliasing(Color3f[] internalColorBuffer, int width, int height) {
@@ -128,7 +116,7 @@ public class RenderingTask implements Callable<Boolean>
 		ColumnSubstitutor scs = null;
 		ColumnSubstitutorForGradient gcs = null;
 		HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
-		PixelStep step = stepsWithAliasing();
+		PixelStep step = new PixelStep(dcsd, xStart, yStart);
 
 		double vOld = 0;
 		double v = step.v_start;
@@ -172,7 +160,7 @@ public class RenderingTask implements Callable<Boolean>
 
 	/** no antialising -> sample pixel center */
 	private void renderWithoutAliasing(int width, int height) {
-		PixelStep step = stepsWithoutAliasing();
+		PixelStep step = new PixelStep(dcsd, xStart, yStart);
 
 		for( int y = 0; y < height; y++ )
 		{
