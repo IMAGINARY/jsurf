@@ -78,7 +78,7 @@ public class RenderingTask implements Callable<Boolean>
     protected void render(Color3f[] colorBuffer, int width, int height) throws RenderingInterruptedException {
         switch( dcsd.antiAliasingPattern ) {
             case OG_1x1: {
-                renderWithoutAliasing();
+                renderWithoutAliasing(width, height);
                 break;
             }
     		// all other antialiasing modes
@@ -138,20 +138,18 @@ public class RenderingTask implements Callable<Boolean>
 	}
 
 	/** no antialising -> sample pixel center */
-	private void renderWithoutAliasing() {
-		int internal_width = xEnd - xStart + 1;
-		int internal_height = yEnd - yStart + 1;
+	private void renderWithoutAliasing(int width, int height) {
 		double u_start = dcsd.rayCreator.transformU( xStart / ( dcsd.width - 1.0 ) );
 		double v_start = dcsd.rayCreator.transformV( yStart / ( dcsd.height - 1.0 ) );
 		double u_incr = ( dcsd.rayCreator.getUInterval().y - dcsd.rayCreator.getUInterval().x ) / ( dcsd.width - 1.0 );
 		double v_incr = ( dcsd.rayCreator.getVInterval().y - dcsd.rayCreator.getVInterval().x ) / ( dcsd.height - 1.0 );
-		for( int y = 0; y < internal_height; y++ )
+		for( int y = 0; y < height; y++ )
 		{
 		    double v = v_start + y * v_incr;
 		    ColumnSubstitutor scs = dcsd.surfaceRowSubstitutor.setV( v );
 		    ColumnSubstitutorForGradient gcs = dcsd.gradientRowSubstitutor.setV( v );
          
-		    for( int x = 0; x < internal_width; x++ )
+		    for( int x = 0; x < width; x++ )
 		    {
 		        if( Thread.currentThread().isInterrupted() )
 		            throw new RenderingInterruptedException();
