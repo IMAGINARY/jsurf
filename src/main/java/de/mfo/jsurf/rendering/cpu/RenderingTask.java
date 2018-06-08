@@ -28,31 +28,22 @@ public class RenderingTask implements Callable<Boolean>
 	static ColorBufferPool bufferPool = new ColorBufferPool();
 	
     // initialized by the constructor
-    private int xStart;
-    private int yStart;
-    private int xEnd;
-    private int yEnd;
     private final DrawcallStaticData dcsd;
     private final Shader frontShader;
     private final Shader backShader;
+    private final PixelStep step;
 
     public RenderingTask( DrawcallStaticData dcsd, int xStart, int yStart, int xEnd, int yEnd )
     {
         this.dcsd = dcsd;
-        this.xStart = xStart;
-        this.yStart = yStart;
-        this.xEnd = xEnd;
-        this.yEnd = yEnd;
+		this.step = new PixelStep(dcsd, xStart, yStart, xEnd - xStart + 2, yEnd - yStart + 2);
         this.frontShader = new Shader(dcsd.frontAmbientColor, dcsd.lightSources, dcsd.frontLightProducts);
         this.backShader = new Shader(dcsd.backAmbientColor, dcsd.lightSources, dcsd.backLightProducts);
     }
 
     public Boolean call() {
-		int width = xEnd - xStart + 2;
-		int height = yEnd - yStart + 2;
-		Color3f[] colorBuffer = bufferPool.getBuffer(width * height);
+		Color3f[] colorBuffer = bufferPool.getBuffer(step.width * step.height);
         try {
-    		PixelStep step = new PixelStep(dcsd, xStart, yStart, width, height);
             render(colorBuffer, step);
             return true;
         } catch( RenderingInterruptedException rie ) { // rendering interrupted .. that's ok
@@ -180,7 +171,7 @@ public class RenderingTask implements Callable<Boolean>
 		            Color3f lrColor = internalColorBuffer[ internalBufferIndex - step.width ];
 		            Color3f llColor = internalColorBuffer[ internalBufferIndex - step.width - 1 ];
 
-		            dcsd.colorBuffer[ step.colorBufferIndex ] = antiAliasPixel( step.uOld, step.vOld, step.u_incr, step.v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
+		            dcsd.colorBuffer[ step.colorBufferIndex ] = antiAliasPixel( dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
 		        }
 		        step.stepU();
 		        internalBufferIndex++;
@@ -209,7 +200,7 @@ public class RenderingTask implements Callable<Boolean>
 		}
 	}
 	
-    private Color3f antiAliasPixel( double ll_u, double ll_v, double u_incr, double v_incr, AntiAliasingPattern aap, Color3f ulColor, Color3f urColor, Color3f llColor, Color3f lrColor, HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm )
+    private Color3f antiAliasPixel( AntiAliasingPattern aap, Color3f ulColor, Color3f urColor, Color3f llColor, Color3f lrColor, HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm )
     {
         // first average pixel-corner colors
         Color3f finalColor;
@@ -242,8 +233,8 @@ public class RenderingTask implements Callable<Boolean>
                 else
                 {
                     // color of this sample point is not known -> calculate
-                    double v = ll_v + sp.getV() * v_incr;
-                    double u = ll_u + sp.getU() * u_incr;
+                    double v = step.v + sp.getV() * step.v_incr;
+                    double u = step.u + sp.getU() * step.u_incr;
                     ColumnSubstitutorPair csp = csp_hm.get( v );
                     if( csp == null )
                     {
