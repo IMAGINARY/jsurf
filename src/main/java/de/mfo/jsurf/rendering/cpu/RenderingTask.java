@@ -32,6 +32,7 @@ public class RenderingTask implements Callable<Boolean>
     private final Shader frontShader;
     private final Shader backShader;
     private final PixelStep step;
+	private final HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm;
 
     public RenderingTask( DrawcallStaticData dcsd, int xStart, int yStart, int xEnd, int yEnd )
     {
@@ -39,6 +40,7 @@ public class RenderingTask implements Callable<Boolean>
 		this.step = new PixelStep(dcsd, xStart, yStart, xEnd - xStart + 2, yEnd - yStart + 2);
         this.frontShader = new Shader(dcsd.frontAmbientColor, dcsd.lightSources, dcsd.frontLightProducts);
         this.backShader = new Shader(dcsd.backAmbientColor, dcsd.lightSources, dcsd.backLightProducts);
+        this.csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
     }
 
     public Boolean call() {
@@ -143,7 +145,6 @@ public class RenderingTask implements Callable<Boolean>
 
 	private void renderWithAliasing(Color3f[] internalColorBuffer, PixelStep step) {
 		// first sample canvas at pixel corners and cast primary rays
-		HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
 
 	    int internalBufferIndex = 0;
 		for( int y = 0; y < step.height; ++y )
@@ -167,7 +168,7 @@ public class RenderingTask implements Callable<Boolean>
 		            Color3f lrColor = internalColorBuffer[ internalBufferIndex - step.width ];
 		            Color3f llColor = internalColorBuffer[ internalBufferIndex - step.width - 1 ];
 
-		            dcsd.colorBuffer[ step.colorBufferIndex ] = antiAliasPixel( dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
+		            dcsd.colorBuffer[ step.colorBufferIndex ] = antiAliasPixel( dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor ).get().getRGB();
 		        }
 		        step.stepU();
 		        internalBufferIndex++;
@@ -196,7 +197,7 @@ public class RenderingTask implements Callable<Boolean>
 		}
 	}
 	
-    private Color3f antiAliasPixel( AntiAliasingPattern aap, Color3f ulColor, Color3f urColor, Color3f llColor, Color3f lrColor, HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm )
+    private Color3f antiAliasPixel( AntiAliasingPattern aap, Color3f ulColor, Color3f urColor, Color3f llColor, Color3f lrColor )
     {
         // first average pixel-corner colors
         Color3f finalColor;
