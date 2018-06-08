@@ -87,18 +87,51 @@ public class RenderingTask implements Callable<Boolean>
         }
     }
 
+	private class PixelStep {
+		public final double u_start;
+		public final double v_start;
+		public final double u_incr;
+		public final double v_incr;
+		
+		private PixelStep(double u_start, double v_start, double u_incr, double v_incr) {
+			this.u_start = u_start;
+			this.v_start = v_start;
+			this.u_incr = u_incr;
+			this.v_incr = v_incr;
+		}
+	}
+
+	private PixelStep stepsWithAliasing() {
+		RayCreator rayCreator = dcsd.rayCreator;
+		Vector2d uInterval = rayCreator.getUInterval();
+		Vector2d vInterval = rayCreator.getVInterval();
+		double u_start = rayCreator.transformU( ( xStart - 0.5 ) / ( dcsd.width - 1.0 ) );
+		double v_start = rayCreator.transformV( ( yStart - 0.5 ) / ( dcsd.height - 1.0 ) );
+		double u_incr = ( uInterval.y - uInterval.x ) / ( dcsd.width - 1.0 );
+		double v_incr = ( vInterval.y - vInterval.x ) / ( dcsd.height - 1.0 );
+		return new PixelStep(u_start, v_start, u_incr, v_incr);
+	}
+	
+	private PixelStep stepsWithoutAliasing() {
+		RayCreator rayCreator = dcsd.rayCreator;
+		Vector2d uInterval = rayCreator.getUInterval();
+		Vector2d vInterval = rayCreator.getVInterval();
+		double u_start = rayCreator.transformU( xStart / ( dcsd.width - 1.0 ) );
+		double v_start = rayCreator.transformV( yStart / ( dcsd.height - 1.0 ) );
+		double u_incr = ( uInterval.y - uInterval.x ) / ( dcsd.width - 1.0 );
+		double v_incr = ( vInterval.y - vInterval.x ) / ( dcsd.height - 1.0 );
+		return new PixelStep(u_start, v_start, u_incr, v_incr);
+	}
+
 	private void renderWithAliasing(Color3f[] internalColorBuffer, int width, int height) {
 		// first sample canvas at pixel corners and cast primary rays
 		ColumnSubstitutor scs = null;
 		ColumnSubstitutorForGradient gcs = null;
 		HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
-		double u_start = dcsd.rayCreator.transformU( ( xStart - 0.5 ) / ( dcsd.width - 1.0 ) );
-		double v_start = dcsd.rayCreator.transformV( ( yStart - 0.5 ) / ( dcsd.height - 1.0 ) );
-		double u_incr = ( dcsd.rayCreator.getUInterval().y - dcsd.rayCreator.getUInterval().x ) / ( dcsd.width - 1.0 );
-		double v_incr = ( dcsd.rayCreator.getVInterval().y - dcsd.rayCreator.getVInterval().x ) / ( dcsd.height - 1.0 );
+		PixelStep step = stepsWithAliasing();
 
 		double vOld = 0;
-		double v = v_start;
+		double v = step.v_start;
 	    int internalBufferIndex = 0;
 		for( int y = 0; y < height; ++y )
 		{
@@ -111,7 +144,7 @@ public class RenderingTask implements Callable<Boolean>
 		    csp_hm.put( v, new ColumnSubstitutorPair( scs, gcs ) );
 
 		    double uOld = 0;
-		    double u = u_start;
+		    double u = step.u_start;
 		    for( int x = 0; x < width; ++x )
 		    {
 		        if( Thread.currentThread().isInterrupted() )
@@ -126,26 +159,24 @@ public class RenderingTask implements Callable<Boolean>
 		            Color3f lrColor = internalColorBuffer[ internalBufferIndex - width ];
 		            Color3f llColor = internalColorBuffer[ internalBufferIndex - width - 1 ];
 
-		            dcsd.colorBuffer[ ( yStart + y - 1 ) * dcsd.width + ( xStart + x - 1 ) ] = antiAliasPixel( uOld, vOld, u_incr, v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
+		            dcsd.colorBuffer[ ( yStart + y - 1 ) * dcsd.width + ( xStart + x - 1 ) ] = antiAliasPixel( uOld, vOld, step.u_incr, step.v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
 		        }
 		        uOld = u;
-		        u += u_incr;
+		        u += step.u_incr;
 		        internalBufferIndex++;
 		    }
 		    vOld = v;
-		    v += v_incr;
+		    v += step.v_incr;
 		}
 	}
 
 	/** no antialising -> sample pixel center */
 	private void renderWithoutAliasing(int width, int height) {
-		double u_start = dcsd.rayCreator.transformU( xStart / ( dcsd.width - 1.0 ) );
-		double v_start = dcsd.rayCreator.transformV( yStart / ( dcsd.height - 1.0 ) );
-		double u_incr = ( dcsd.rayCreator.getUInterval().y - dcsd.rayCreator.getUInterval().x ) / ( dcsd.width - 1.0 );
-		double v_incr = ( dcsd.rayCreator.getVInterval().y - dcsd.rayCreator.getVInterval().x ) / ( dcsd.height - 1.0 );
+		PixelStep step = stepsWithoutAliasing();
+
 		for( int y = 0; y < height; y++ )
 		{
-		    double v = v_start + y * v_incr;
+		    double v = step.v_start + y * step.v_incr;
 		    ColumnSubstitutor scs = dcsd.surfaceRowSubstitutor.setV( v );
 		    ColumnSubstitutorForGradient gcs = dcsd.gradientRowSubstitutor.setV( v );
          
@@ -153,13 +184,13 @@ public class RenderingTask implements Callable<Boolean>
 		    {
 		        if( Thread.currentThread().isInterrupted() )
 		            throw new RenderingInterruptedException();
-		        double u = u_start + x * u_incr;
+		        double u = step.u_start + x * step.u_incr;
 		        dcsd.colorBuffer[ dcsd.width * ( yStart + y ) + xStart + x ] = tracePolynomial( scs, gcs, u, v ).get().getRGB();
 		        //dcsd.colorBuffer[ dcsd.width * y + x ] = traceRay( u, v ).get().getRGB();
 		    }
 		}
 	}
-
+	
     private Color3f antiAliasPixel( double ll_u, double ll_v, double u_incr, double v_incr, AntiAliasingPattern aap, Color3f ulColor, Color3f urColor, Color3f llColor, Color3f lrColor, HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm )
     {
         // first average pixel-corner colors
