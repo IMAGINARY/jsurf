@@ -87,20 +87,22 @@ public class RenderingTask implements Callable<Boolean>
         }
     }
 
+    /**
+     * Holds information needed for stepping through the pixels in the image
+     *
+     */
 	private static class PixelStep {
 		public final double u_start;
 		public final double v_start;
 		public final double u_incr;
 		public final double v_incr;
 		
-		private PixelStep(double u_start, double v_start, double u_incr, double v_incr) {
-			this.u_start = u_start;
-			this.v_start = v_start;
-			this.u_incr = u_incr;
-			this.v_incr = v_incr;
-		}
+		public double v;
+		public double u;
+		public double vOld;
+		public double uOld;
 		
-		private PixelStep(DrawcallStaticData dcsd, int xStart, int yStart) {
+		public PixelStep(DrawcallStaticData dcsd, int xStart, int yStart) {
 			RayCreator rayCreator = dcsd.rayCreator;
 			Vector2d uInterval = rayCreator.getUInterval();
 			Vector2d vInterval = rayCreator.getVInterval();
@@ -108,6 +110,29 @@ public class RenderingTask implements Callable<Boolean>
 			this.v_start = rayCreator.transformV( ( yStart - 0.5 ) / ( dcsd.height - 1.0 ) );
 			this.u_incr = ( uInterval.y - uInterval.x ) / ( dcsd.width - 1.0 );
 			this.v_incr = ( vInterval.y - vInterval.x ) / ( dcsd.height - 1.0 );
+			
+			reset();
+		}
+
+		private void reset() {
+			vOld = 0;
+			v = v_start;
+
+			uOld = 0;
+			u = u_start;
+		}
+
+		public void stepU() {
+	        uOld = u;
+	        u += u_incr;
+		}
+		
+		public void stepV() {
+		    vOld = v;
+		    v += v_incr;
+
+			uOld = 0;
+			u = u_start;
 		}
 	}
 
@@ -118,28 +143,24 @@ public class RenderingTask implements Callable<Boolean>
 		HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
 		PixelStep step = new PixelStep(dcsd, xStart, yStart);
 
-		double vOld = 0;
-		double v = step.v_start;
 	    int internalBufferIndex = 0;
 		for( int y = 0; y < height; ++y )
 		{
 		    csp_hm.clear();
-		    csp_hm.put( vOld, new ColumnSubstitutorPair( scs, gcs ) );
+		    csp_hm.put( step.vOld, new ColumnSubstitutorPair( scs, gcs ) );
 
-		    scs = dcsd.surfaceRowSubstitutor.setV( v );
-		    gcs = dcsd.gradientRowSubstitutor.setV( v );
+		    scs = dcsd.surfaceRowSubstitutor.setV( step.v );
+		    gcs = dcsd.gradientRowSubstitutor.setV( step.v );
 		    
-		    csp_hm.put( v, new ColumnSubstitutorPair( scs, gcs ) );
+		    csp_hm.put( step.v, new ColumnSubstitutorPair( scs, gcs ) );
 
-		    double uOld = 0;
-		    double u = step.u_start;
 		    for( int x = 0; x < width; ++x )
 		    {
 		        if( Thread.currentThread().isInterrupted() )
 		            throw new RenderingInterruptedException();
 		        
 		        // trace rays corresponding to (u,v)-coordinates on viewing plane
-		        internalColorBuffer[ internalBufferIndex ] = tracePolynomial( scs, gcs, u, v );
+		        internalColorBuffer[ internalBufferIndex ] = tracePolynomial( scs, gcs, step.u, step.v );
 		        if( x > 0 && y > 0 )
 		        {
 		            Color3f urColor = internalColorBuffer[ internalBufferIndex ];
@@ -147,14 +168,12 @@ public class RenderingTask implements Callable<Boolean>
 		            Color3f lrColor = internalColorBuffer[ internalBufferIndex - width ];
 		            Color3f llColor = internalColorBuffer[ internalBufferIndex - width - 1 ];
 
-		            dcsd.colorBuffer[ ( yStart + y - 1 ) * dcsd.width + ( xStart + x - 1 ) ] = antiAliasPixel( uOld, vOld, step.u_incr, step.v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
+		            dcsd.colorBuffer[ ( yStart + y - 1 ) * dcsd.width + ( xStart + x - 1 ) ] = antiAliasPixel( step.uOld, step.vOld, step.u_incr, step.v_incr, dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor, csp_hm ).get().getRGB();
 		        }
-		        uOld = u;
-		        u += step.u_incr;
+		        step.stepU();
 		        internalBufferIndex++;
 		    }
-		    vOld = v;
-		    v += step.v_incr;
+		    step.stepV();
 		}
 	}
 
@@ -164,18 +183,18 @@ public class RenderingTask implements Callable<Boolean>
 
 		for( int y = 0; y < height; y++ )
 		{
-		    double v = step.v_start + y * step.v_incr;
-		    ColumnSubstitutor scs = dcsd.surfaceRowSubstitutor.setV( v );
-		    ColumnSubstitutorForGradient gcs = dcsd.gradientRowSubstitutor.setV( v );
+		    ColumnSubstitutor scs = dcsd.surfaceRowSubstitutor.setV( step.v );
+		    ColumnSubstitutorForGradient gcs = dcsd.gradientRowSubstitutor.setV( step.v );
          
 		    for( int x = 0; x < width; x++ )
 		    {
 		        if( Thread.currentThread().isInterrupted() )
 		            throw new RenderingInterruptedException();
-		        double u = step.u_start + x * step.u_incr;
-		        dcsd.colorBuffer[ dcsd.width * ( yStart + y ) + xStart + x ] = tracePolynomial( scs, gcs, u, v ).get().getRGB();
-		        //dcsd.colorBuffer[ dcsd.width * y + x ] = traceRay( u, v ).get().getRGB();
+
+		        dcsd.colorBuffer[ dcsd.width * ( yStart + y ) + xStart + x ] = tracePolynomial( scs, gcs, step.u, step.v ).get().getRGB();
+			    step.stepU();
 		    }
+			step.stepV();
 		}
 	}
 	
