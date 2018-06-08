@@ -143,18 +143,13 @@ public class RenderingTask implements Callable<Boolean>
 
 	private void renderWithAliasing(Color3f[] internalColorBuffer, PixelStep step) {
 		// first sample canvas at pixel corners and cast primary rays
-		ColumnSubstitutor scs = null;
-		ColumnSubstitutorForGradient gcs = null;
 		HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
 
 	    int internalBufferIndex = 0;
 		for( int y = 0; y < step.height; ++y )
 		{
-		    csp_hm.clear();
-		    csp_hm.put( step.vOld, new ColumnSubstitutorPair( scs, gcs ) );
-
-		    scs = dcsd.surfaceRowSubstitutor.setV( step.v );
-		    gcs = dcsd.gradientRowSubstitutor.setV( step.v );
+			ColumnSubstitutor scs = dcsd.surfaceRowSubstitutor.setV( step.v );
+			ColumnSubstitutorForGradient gcs = dcsd.gradientRowSubstitutor.setV( step.v );
 		    
 		    csp_hm.put( step.v, new ColumnSubstitutorPair( scs, gcs ) );
 
