@@ -104,8 +104,9 @@ public class RenderingTask implements Callable<Boolean>
 			RayCreator rayCreator = dcsd.rayCreator;
 			Vector2d uInterval = rayCreator.getUInterval();
 			Vector2d vInterval = rayCreator.getVInterval();
-			this.u_start = rayCreator.transformU( ( xStart - 0.5 ) / ( dcsd.width - 1.0 ) );
-			this.v_start = rayCreator.transformV( ( yStart - 0.5 ) / ( dcsd.height - 1.0 ) );
+			double displace = (dcsd.antiAliasingPattern == AntiAliasingPattern.OG_1x1) ? 0 : 0.5;
+			this.u_start = rayCreator.transformU( ( xStart - displace ) / ( dcsd.width - 1.0 ) );
+			this.v_start = rayCreator.transformV( ( yStart - displace ) / ( dcsd.height - 1.0 ) );
 			this.u_incr = ( uInterval.y - uInterval.x ) / ( dcsd.width - 1.0 );
 			this.v_incr = ( vInterval.y - vInterval.x ) / ( dcsd.height - 1.0 );
 			
@@ -233,8 +234,8 @@ public class RenderingTask implements Callable<Boolean>
                 else
                 {
                     // color of this sample point is not known -> calculate
-                    double v = step.v + sp.getV() * step.v_incr;
-                    double u = step.u + sp.getU() * step.u_incr;
+                    double v = step.vOld + sp.getV() * step.v_incr;
+                    double u = step.uOld + sp.getU() * step.u_incr;
                     ColumnSubstitutorPair csp = csp_hm.get( v );
                     if( csp == null )
                     {
