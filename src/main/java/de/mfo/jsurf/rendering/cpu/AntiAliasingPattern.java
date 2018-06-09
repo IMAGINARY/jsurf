@@ -33,18 +33,22 @@ public enum AntiAliasingPattern implements Iterable< AntiAliasingPattern.Samplin
     QUINCUNX( getQuincunxPattern() );
 
     private final SamplingPoint[] points;
+    
+    public final float cornerWeight;
 
     public static class SamplingPoint
     {
         public final float u;
         public final float v;
         public final float weight;
+        public final boolean isCorner;
 
         private SamplingPoint( float u, float v, float weight )
         {
             this.u = u;
             this.v = v;
             this.weight = weight;
+            this.isCorner = (u == 0.0 || u == 1.0) && (v == 0.0 || v == 1.0);
         }
     }
 
@@ -84,7 +88,18 @@ public enum AntiAliasingPattern implements Iterable< AntiAliasingPattern.Samplin
         }
     }
 
-    private AntiAliasingPattern( SamplingPoint[] points ) { this.points = points; }
+    private AntiAliasingPattern( SamplingPoint[] points ) {
+    	this.points = points;
+    	this.cornerWeight = findFirstCorner().weight;
+	}
+    
+    SamplingPoint findFirstCorner() {
+    	for (SamplingPoint sp : points)
+    		if (sp.isCorner)
+    			return sp;
+    	return points[0];
+    }
+    
     public Iterator< SamplingPoint > iterator() { return new SamplingPointIterator( this.points ); }
 
     private static SamplingPoint[] getOGSSPattern( int size )

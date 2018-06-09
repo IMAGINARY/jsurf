@@ -34,63 +34,50 @@ class AntiAliasedPixelRenderer extends PixelRenderStrategy {
 
     private Color3f antiAliasPixel( PixelStep step, Color3f ulColor, Color3f urColor, Color3f llColor, Color3f lrColor )
     {
-        // first average pixel-corner colors
-        Color3f finalColor;
+        boolean doSuperSampling = 
+        	aap != AntiAliasingPattern.OG_2x2 &&
+        	(areTooDifferent( ulColor, urColor ) ||
+    		 areTooDifferent( ulColor, llColor ) ||
+    		 areTooDifferent( ulColor, lrColor ) ||
+    		 areTooDifferent( urColor, llColor ) ||
+    		 areTooDifferent( urColor, lrColor ) ||
+    		 areTooDifferent( llColor, lrColor ));
 
-        // adaptive supersampling
-        if( aap != AntiAliasingPattern.OG_2x2 &&
-        	( !areWithinThreshold( ulColor, urColor ) ||
-              !areWithinThreshold( ulColor, llColor ) ||
-              !areWithinThreshold( ulColor, lrColor ) ||
-              !areWithinThreshold( urColor, llColor ) ||
-              !areWithinThreshold( urColor, lrColor ) ||
-              !areWithinThreshold( llColor, lrColor ) ) )
+        // first average pixel-corner colors. Weight depends on whether more samples will be taken
+        Color3f accumulator = new Color3f( ulColor );
+        accumulator.add( urColor );
+        accumulator.add( llColor );
+        accumulator.add( lrColor );
+        accumulator.scale( doSuperSampling ? aap.cornerWeight : 0.25f);
+
+        if (doSuperSampling)
         {
-            // anti-alias pixel with advanced sampling pattern
-            finalColor = new Color3f();
             for( AntiAliasingPattern.SamplingPoint sp : aap )
             {
                 if( Thread.currentThread().isInterrupted() )
                     throw new RenderingInterruptedException();
 
-                Color3f ss_color;
-                if( sp.u == 0.0 && sp.v == 0.0 )
-                    ss_color = llColor;
-                else if( sp.u == 0.0 && sp.v == 1.0 )
-                    ss_color = ulColor;
-                else if( sp.u == 1.0 && sp.v == 1.0 )
-                    ss_color = urColor;
-                else if( sp.u == 1.0 && sp.v == 0.0 )
-                    ss_color = lrColor;
-                else
-                {
-                    // color of this sample point is not known -> calculate
-                    double v = step.vOld + sp.v * step.v_incr;
-                    double u = step.uOld + sp.u * step.u_incr;
-                    ColumnSubstitutorPair csp = cspProvider.get( v );
-                    ss_color = tracePolynomial( csp.scs, csp.gcs, u, v );
-                }
-                finalColor.scaleAdd( sp.weight, ss_color, finalColor );
+                // corners already accumulated above
+                if (sp.isCorner)
+                	continue;
+                
+                double v = step.vOld + sp.v * step.v_incr;
+                double u = step.uOld + sp.u * step.u_incr;
+                ColumnSubstitutorPair csp = cspProvider.get( v );
+                Color3f sample = tracePolynomial( csp.scs, csp.gcs, u, v );
+                accumulator.scaleAdd( sp.weight, sample, accumulator );
             }
-        }
-        else
-        {
-            finalColor = new Color3f( ulColor );
-            finalColor.add( urColor );
-            finalColor.add( llColor );
-            finalColor.add( lrColor );
-            finalColor.scale( 0.25f );
         }
 
         // clamp color, because floating point operations may yield values outside [0,1]
-        finalColor.clamp( 0f, 1f );
-        return finalColor;
+        accumulator.clamp( 0f, 1f );
+        return accumulator;
     }
     
-    private boolean areWithinThreshold(Color3f c1, Color3f c2) {
+    private boolean areTooDifferent(Color3f c1, Color3f c2) {
     	float x = c1.x - c2.x;
     	float y = c1.y - c2.y;
     	float z = c1.z - c2.z;
-    	return (x * x) + (y * y) + (z * z) < thresholdSqr;
+    	return (x * x) + (y * y) + (z * z) >= thresholdSqr;
     }
 }
