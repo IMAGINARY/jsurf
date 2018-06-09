@@ -1,7 +1,6 @@
 package de.mfo.jsurf.rendering.cpu;
 
 import javax.vecmath.Color3f;
-import javax.vecmath.Vector3f;
 
 import de.mfo.jsurf.rendering.RenderingInterruptedException;
 
@@ -39,12 +38,13 @@ class AntiAliasedPixelRenderer extends PixelRenderStrategy {
         Color3f finalColor;
 
         // adaptive supersampling
-        if( aap != AntiAliasingPattern.OG_2x2 && ( colorDiffSqr( ulColor, urColor ) >= thresholdSqr ||
-            colorDiffSqr( ulColor, llColor ) >= thresholdSqr ||
-            colorDiffSqr( ulColor, lrColor ) >= thresholdSqr ||
-            colorDiffSqr( urColor, llColor ) >= thresholdSqr ||
-            colorDiffSqr( urColor, lrColor ) >= thresholdSqr ||
-            colorDiffSqr( llColor, lrColor ) >= thresholdSqr ) )
+        if( aap != AntiAliasingPattern.OG_2x2 &&
+        	( !areWithinThreshold( ulColor, urColor ) ||
+              !areWithinThreshold( ulColor, llColor ) ||
+              !areWithinThreshold( ulColor, lrColor ) ||
+              !areWithinThreshold( urColor, llColor ) ||
+              !areWithinThreshold( urColor, lrColor ) ||
+              !areWithinThreshold( llColor, lrColor ) ) )
         {
             // anti-alias pixel with advanced sampling pattern
             finalColor = new Color3f();
@@ -86,11 +86,11 @@ class AntiAliasedPixelRenderer extends PixelRenderStrategy {
         finalColor.clamp( 0f, 1f );
         return finalColor;
     }
-
-    private float colorDiffSqr( Color3f c1, Color3f c2 )
-    {
-        Vector3f diff = new Vector3f( c1 );
-        diff.sub( c2 );
-        return diff.dot( diff );
+    
+    private boolean areWithinThreshold(Color3f c1, Color3f c2) {
+    	float x = c1.x - c2.x;
+    	float y = c1.y - c2.y;
+    	float z = c1.z - c2.z;
+    	return (x * x) + (y * y) + (z * z) < thresholdSqr;
     }
 }
