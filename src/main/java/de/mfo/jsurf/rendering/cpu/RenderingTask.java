@@ -34,7 +34,7 @@ public class RenderingTask implements Callable<Boolean>
     public RenderingTask( DrawcallStaticData dcsd, int xStart, int yStart, int xEnd, int yEnd )
     {
         this.dcsd = dcsd;
-		this.step = new PixelStep(dcsd, xStart, yStart, xEnd - xStart + 2, yEnd - yStart + 2);
+		this.step = new PixelStep(dcsd, xStart, yStart, xEnd, yEnd);
         this.cspProvider = new ColumnSubstitutorPairProvider(dcsd);
         this.polyTracer = new PolynomialTracer(dcsd);
     }

@@ -23,7 +23,7 @@ class PixelStep {
 	public int colorBufferIndex;
 	private final int colorBufferVStep;
 	
-	public PixelStep(DrawcallStaticData dcsd, int xStart, int yStart, int width, int height) {
+	public PixelStep(DrawcallStaticData dcsd, int xStart, int yStart, int xEnd, int yEnd) {
 		RayCreator rayCreator = dcsd.rayCreator;
 		Vector2d uInterval = rayCreator.getUInterval();
 		Vector2d vInterval = rayCreator.getVInterval();
@@ -33,8 +33,8 @@ class PixelStep {
 		this.u_incr = ( uInterval.y - uInterval.x ) / ( dcsd.width - 1.0 );
 		this.v_incr = ( vInterval.y - vInterval.x ) / ( dcsd.height - 1.0 );
 		
-		this.width = width;
-		this.height = height;
+		this.width = xEnd - xStart + 2;
+		this.height = yEnd - yStart + 2;
 		this.colorBufferIndex = (yStart - 1) * dcsd.width + xStart - 1;
 		this.colorBufferVStep = dcsd.width - width;
 		reset();
