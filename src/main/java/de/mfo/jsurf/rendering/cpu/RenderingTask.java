@@ -122,17 +122,76 @@ public class RenderingTask implements Callable<Boolean>
     }
     
     private abstract class PixelRenderStrategy {
+    	private final PolynomialTracer polyTracer;
+		private final RayCreator rayCreator;
+		private final Shader frontShader;
+		private final Shader backShader;
+		private final Color3f backgroundColor;
+
+		protected final int[] colorBuffer;
+
+		public PixelRenderStrategy(DrawcallStaticData dcsd, PolynomialTracer polyTracer) {
+			this.polyTracer = polyTracer;
+	        this.frontShader = new Shader(dcsd.frontAmbientColor, dcsd.lightSources, dcsd.frontLightProducts);
+	        this.backShader = new Shader(dcsd.backAmbientColor, dcsd.lightSources, dcsd.backLightProducts);
+			this.backgroundColor = dcsd.backgroundColor;
+			this.rayCreator = dcsd.rayCreator;
+			this.colorBuffer = dcsd.colorBuffer;
+    	}
+    	
     	public abstract void renderPixel(int x, int y, PixelStep step, ColumnSubstitutorPair csp);
+    	
+        protected Color3f tracePolynomial( ColumnSubstitutor scs, ColumnSubstitutorForGradient gcs, double u, double v )
+        {
+        	double hit = polyTracer.findClosestHit(scs, gcs, u, v);
+
+        	if (Double.isNaN(hit))
+                return backgroundColor;
+
+            UnivariatePolynomialVector3d gradientPolys = gcs.setU( u );
+    	    Vector3d n_surfaceSpace = gradientPolys.setT( hit );
+    	    Vector3d n_cameraSpace = rayCreator.surfaceSpaceNormalToCameraSpaceNormal( n_surfaceSpace );
+    	
+            Ray ray = rayCreator.createCameraSpaceRay( u, v );
+    	    return shade( ray, hit, n_cameraSpace );
+        }
+
+        /**
+         * Calculates the shading in camera space
+         */
+        protected Color3f shade( Ray ray, double hit, Vector3d cameraSpaceNormal )
+        {
+            // normalize only if point is not singular
+            float nLength = (float) cameraSpaceNormal.length();
+            if( nLength != 0.0f )
+                cameraSpaceNormal.scale( 1.0f / nLength );
+
+            Vector3d view = new Vector3d(-ray.d.x, -ray.d.y, -ray.d.z);
+            // TODO: not normalizing the view does not seem to affect the rendered result, maybe it can be avoided
+            view.normalize();
+
+            Shader shader = frontShader;
+            if( cameraSpaceNormal.dot( view ) <= 0.0f ) {
+            	shader = backShader;
+                cameraSpaceNormal.negate();
+            }
+
+            return shader.shade(ray.at(hit), view, cameraSpaceNormal);
+        }
     }
     
     private class AntiAliasedPixelRenderer extends PixelRenderStrategy {
-
     	private final Color3f[] internalColorBuffer;
     	private final float thresholdSqr;
+    	private final AntiAliasingPattern aap;
+    	private final ColumnSubstitutorPairProvider cspProvider;
 
-		public AntiAliasedPixelRenderer(DrawcallStaticData cdsd, Color3f[] internalColorBuffer) {
+		public AntiAliasedPixelRenderer(DrawcallStaticData dcsd, Color3f[] internalColorBuffer, PolynomialTracer polyTracer, ColumnSubstitutorPairProvider cspProvider) {
+			super(dcsd, polyTracer);
 			this.internalColorBuffer = internalColorBuffer;
 			this.thresholdSqr = dcsd.antiAliasingThreshold * dcsd.antiAliasingThreshold;
+			this.aap = dcsd.antiAliasingPattern;
+			this.cspProvider = cspProvider;
 		}
     	
 		@Override
@@ -145,11 +204,11 @@ public class RenderingTask implements Callable<Boolean>
 			    Color3f lrColor = internalColorBuffer[ step.internalBufferIndex - step.width ];
 			    Color3f llColor = internalColorBuffer[ step.internalBufferIndex - step.width - 1 ];
 
-			    dcsd.colorBuffer[ step.colorBufferIndex ] = antiAliasPixel( dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor ).get().getRGB();
+			    colorBuffer[ step.colorBufferIndex ] = antiAliasPixel( step, ulColor, urColor, llColor, lrColor ).get().getRGB();
 			}
 		}
 
-	    private Color3f antiAliasPixel( AntiAliasingPattern aap, Color3f ulColor, Color3f urColor, Color3f llColor, Color3f lrColor )
+	    private Color3f antiAliasPixel( PixelStep step, Color3f ulColor, Color3f urColor, Color3f llColor, Color3f lrColor )
 	    {
 	        // first average pixel-corner colors
 	        Color3f finalColor;
@@ -215,8 +274,12 @@ public class RenderingTask implements Callable<Boolean>
     }
 
     private class BasicPixelRenderer extends PixelRenderStrategy {
+    	public BasicPixelRenderer(DrawcallStaticData dcsd, PolynomialTracer polyTracer) {
+    		super(dcsd, polyTracer);
+		}
+
 		@Override public void renderPixel(int x, int y, PixelStep step, ColumnSubstitutorPair csp) {
-			dcsd.colorBuffer[ step.colorBufferIndex ] = tracePolynomial(csp.scs, csp.gcs, step.u, step.v ).get().getRGB();
+			colorBuffer[ step.colorBufferIndex ] = tracePolynomial(csp.scs, csp.gcs, step.u, step.v ).get().getRGB();
 		}
     }
     
@@ -224,18 +287,16 @@ public class RenderingTask implements Callable<Boolean>
 	
     // initialized by the constructor
     private final DrawcallStaticData dcsd;
-    private final Shader frontShader;
-    private final Shader backShader;
     private final PixelStep step;
     private final ColumnSubstitutorPairProvider cspProvider;
+    private final PolynomialTracer polyTracer;
 
     public RenderingTask( DrawcallStaticData dcsd, int xStart, int yStart, int xEnd, int yEnd )
     {
         this.dcsd = dcsd;
 		this.step = new PixelStep(dcsd, xStart, yStart, xEnd - xStart + 2, yEnd - yStart + 2);
-        this.frontShader = new Shader(dcsd.frontAmbientColor, dcsd.lightSources, dcsd.frontLightProducts);
-        this.backShader = new Shader(dcsd.backAmbientColor, dcsd.lightSources, dcsd.backLightProducts);
         this.cspProvider = new ColumnSubstitutorPairProvider(dcsd);
+        this.polyTracer = new PolynomialTracer(dcsd);
     }
 
     public Boolean call() {
@@ -244,9 +305,9 @@ public class RenderingTask implements Callable<Boolean>
         	PixelRenderStrategy pixelRenderer; 
         	if (useAntiAliasing()) {
         		colorBuffer = bufferPool.getBuffer(step.width * step.height);
-        		pixelRenderer = new AntiAliasedPixelRenderer(dcsd, colorBuffer);
+        		pixelRenderer = new AntiAliasedPixelRenderer(dcsd, colorBuffer, polyTracer, cspProvider);
         	} else {
-        		pixelRenderer = new BasicPixelRenderer();
+        		pixelRenderer = new BasicPixelRenderer(dcsd, polyTracer);
         	}
         	renderImage(pixelRenderer);
             return true;
@@ -280,70 +341,6 @@ public class RenderingTask implements Callable<Boolean>
 		    step.stepV();
 		}
 	}
-
-    private Color3f tracePolynomial( ColumnSubstitutor scs, ColumnSubstitutorForGradient gcs, double u, double v )
-    {
-        // create rays
-        Ray ray = dcsd.rayCreator.createCameraSpaceRay( u, v );
-        Ray clippingRay = dcsd.rayCreator.createClippingSpaceRay( u, v );
-        Ray surfaceRay = dcsd.rayCreator.createSurfaceSpaceRay( u, v );
-
-        UnivariatePolynomialVector3d gradientPolys = null;
-
-        // optimize rays and root-finder parameters
-        //optimizeRays( ray, clippingRay, surfaceRay );
-
-        // clip ray
-        List< Vector2d > intervals = dcsd.rayClipper.clipRay( clippingRay );
-        if( !intervals.isEmpty() )
-        {
-            UnivariatePolynomial surfacePoly = scs.setU( u );
-            for( Vector2d interval : intervals )
-            {
-                // adjust interval, so that it does not start before the eye point
-                double eyeLocation = dcsd.rayCreator.getEyeLocationOnRay();
-                if( interval.x < eyeLocation && eyeLocation < interval.y )
-                    interval.x = Math.max( interval.x, eyeLocation );
-
-                // intersect ray with surface and shade pixel
-                double hit = dcsd.realRootFinder.findFirstRootIn( surfacePoly, interval.x, interval.y );
-                if( !java.lang.Double.isNaN( hit ) && dcsd.rayClipper.clipPoint( surfaceRay.at( hit ), true ) )
-                {
-                    if( gradientPolys == null )
-                        gradientPolys = gcs.setU( u );
-
-                    Vector3d n_surfaceSpace = gradientPolys.setT( hit );
-                    Vector3d n_cameraSpace = dcsd.rayCreator.surfaceSpaceNormalToCameraSpaceNormal( n_surfaceSpace );
-
-                    return shade( ray, hit, n_cameraSpace );
-                }
-            }
-        }
-        return dcsd.backgroundColor;
-    }
-
-    /**
-     * Calculates the shading in camera space
-     */
-    protected Color3f shade( Ray ray, double hit, Vector3d cameraSpaceNormal )
-    {
-        // normalize only if point is not singular
-        float nLength = (float) cameraSpaceNormal.length();
-        if( nLength != 0.0f )
-            cameraSpaceNormal.scale( 1.0f / nLength );
-
-        Vector3d view = new Vector3d(-ray.d.x, -ray.d.y, -ray.d.z);
-        // TODO: not normalizing the view does not seem to affect the rendered result, maybe it can be avoided
-        view.normalize();
-
-        Shader shader = frontShader;
-        if( cameraSpaceNormal.dot( view ) <= 0.0f ) {
-        	shader = backShader;
-            cameraSpaceNormal.negate();
-        }
-
-        return shader.shade(ray.at(hit), view, cameraSpaceNormal);
-    }
     
 //    private Color3f traceRay( double u, double v )
 //    {
