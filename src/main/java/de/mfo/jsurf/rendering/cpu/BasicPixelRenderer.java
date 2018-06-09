@@ -1,6 +1,5 @@
 package de.mfo.jsurf.rendering.cpu;
 
-import de.mfo.jsurf.rendering.cpu.RenderingTask.ColumnSubstitutorPair;
 import de.mfo.jsurf.rendering.cpu.RenderingTask.PixelStep;
 
 class BasicPixelRenderer extends PixelRenderStrategy {

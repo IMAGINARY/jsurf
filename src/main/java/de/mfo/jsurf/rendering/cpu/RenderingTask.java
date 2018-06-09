@@ -21,7 +21,6 @@ import de.mfo.jsurf.rendering.*;
 
 import javax.vecmath.*;
 import java.util.concurrent.*;
-import java.util.*;
 
 public class RenderingTask implements Callable<Boolean>
 {
@@ -88,39 +87,6 @@ public class RenderingTask implements Callable<Boolean>
 		}
 	}
 
-    static class ColumnSubstitutorPair
-    {
-        public final ColumnSubstitutor scs;
-        public final ColumnSubstitutorForGradient gcs;
-        
-        ColumnSubstitutorPair( ColumnSubstitutor scs, ColumnSubstitutorForGradient gcs )
-        {
-            this.scs = scs;
-            this.gcs = gcs;
-        }
-    }
-
-    static class ColumnSubstitutorPairProvider {
-    	private final HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm;
-        private final RowSubstitutor surfaceRowSubstitutor;
-        private final RowSubstitutorForGradient gradientRowSubstitutor;
-
-    	public ColumnSubstitutorPairProvider(DrawcallStaticData dcsd) {
-            this.csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
-            this.surfaceRowSubstitutor = dcsd.surfaceRowSubstitutor;
-            this.gradientRowSubstitutor = dcsd.gradientRowSubstitutor;
-    	}
-
-    	public ColumnSubstitutorPair get(double v) {
-    		ColumnSubstitutorPair csp = csp_hm.get(v);
-    		if (csp == null) {
-    			csp = new ColumnSubstitutorPair(surfaceRowSubstitutor.setV( v ), gradientRowSubstitutor.setV( v ));
-    			csp_hm.put(v, csp);
-    		}
-    		return csp;
-    	}
-    }
-    
     static ColorBufferPool bufferPool = new ColorBufferPool();
 	
     // initialized by the constructor
