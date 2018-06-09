@@ -16,11 +16,10 @@
 
 package de.mfo.jsurf.rendering.cpu;
 
-import de.mfo.jsurf.algebra.*;
-import de.mfo.jsurf.rendering.*;
+import java.util.concurrent.Callable;
+import javax.vecmath.Color3f;
 
-import javax.vecmath.*;
-import java.util.concurrent.*;
+import de.mfo.jsurf.rendering.RenderingInterruptedException;
 
 public class RenderingTask implements Callable<Boolean>
 {
@@ -82,84 +81,4 @@ public class RenderingTask implements Callable<Boolean>
 		    step.stepV();
 		}
 	}
-    
-//    private Color3f traceRay( double u, double v )
-//    {
-//        // create rays
-//        Ray ray = dcsd.rayCreator.createCameraSpaceRay( u, v );
-//        Ray clippingRay = dcsd.rayCreator.createClippingSpaceRay( u, v );
-//        Ray surfaceRay = dcsd.rayCreator.createSurfaceSpaceRay( u, v );
-//
-//        Point3d eye = Helper.interpolate1D( ray.o, ray.d, dcsd.rayCreator.getEyeLocationOnRay() );
-//        UnivariatePolynomialVector3d gradientPolys = null;
-//
-//        // optimize rays and root-finder parameters
-//        //optimizeRays( ray, clippingRay, surfaceRay );
-//
-//        //System.out.println( u + "," + v + ":("+surfaceRay.o.x+","+surfaceRay.o.y+","+surfaceRay.o.z+")"+"("+surfaceRay.d.x+","+surfaceRay.d.y+","+surfaceRay.d.z+")t" );
-//
-//        // clip ray
-//        List< Vector2d > intervals = dcsd.rayClipper.clipRay( clippingRay );
-//        for( Vector2d interval : intervals )
-//        {
-//            // adjust interval, so that it does not start before the eye point
-//            double eyeLocation = dcsd.rayCreator.getEyeLocationOnRay();
-//
-//            if( interval.x < eyeLocation && eyeLocation < interval.y )
-//                interval.x = Math.max( interval.x, eyeLocation );
-//
-//            // intersect ray with surface and shade pixel
-//            double[] hit = new double[ 1 ];
-//            if( intersect( surfaceRay, interval.x, interval.y, hit ) )
-//                if( dcsd.rayClipper.clipPoint( surfaceRay.at( hit[ 0 ] ), true ) )
-//                {
-//                        if( gradientPolys == null )
-//                            gradientPolys = gcs.setU( u );
-//                        Vector3d n_surfaceSpace = gradientPolys.setT( hit );
-//                        Vector3d n_cameraSpace = dcsd.rayCreator.surfaceSpaceNormalToCameraSpaceNormal( n_surfaceSpace );
-//
-//                        return shade( ray.at( hit ), n_cameraSpace, eye );
-//                }
-//                    return shade( ray, surfaceRay, hit[ 0 ], eye );
-//        }
-//        return dcsd.backgroundColor;
-//    }
-
-    protected boolean intersectPolynomial( UnivariatePolynomial p, double rayStart, double rayEnd, double[] hit )
-    {   
-        //System.out.println( p );
-        hit[ 0 ] = dcsd.realRootFinder.findFirstRootIn( p, rayStart, rayEnd );
-        return !java.lang.Double.isNaN( hit[ 0 ] );
-    }
-
-    protected boolean intersect( Ray r, double rayStart, double rayEnd, double[] hit )
-    {
-        UnivariatePolynomial x = new UnivariatePolynomial( r.o.x, r.d.x );
-        UnivariatePolynomial y = new UnivariatePolynomial( r.o.y, r.d.y );
-        UnivariatePolynomial z = new UnivariatePolynomial( r.o.z, r.d.z );
-
-        UnivariatePolynomial p = dcsd.coefficientCalculator.calculateCoefficients( x, y, z );
-        p = p.shrink();
-
-        hit[ 0 ] = ( float ) dcsd.realRootFinder.findFirstRootIn( p, rayStart, rayEnd );
-        return !java.lang.Double.isNaN( hit[ 0 ] );
-    }
-
-    boolean blowUpChooseMaterial( Point3d p )
-    {
-        double R;
-        if( dcsd.rayClipper instanceof de.mfo.jsurf.rendering.cpu.clipping.ClipBlowUpSurface )
-            R = ( ( de.mfo.jsurf.rendering.cpu.clipping.ClipBlowUpSurface ) dcsd.rayClipper ).get_R();
-        else
-            R = 1.0;
-        
-	double u = p.x;
-	double tmp = Math.sqrt( p.y*p.y + p.z*p.z );
-	double v = R + tmp;
-	double dist = u * u + v * v;
-	if( dist > 1.0 )
-		v = R - tmp; // choose the solution inside the disc
-	return ( 3.0 * dist ) % 2.0 < 1.0;
-    }
-
 }
