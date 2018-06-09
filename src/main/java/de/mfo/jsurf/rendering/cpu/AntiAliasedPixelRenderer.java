@@ -36,7 +36,8 @@ class AntiAliasedPixelRenderer extends PixelRenderStrategy {
     {
         boolean doSuperSampling = 
         	aap != AntiAliasingPattern.OG_2x2 &&
-        	(areTooDifferent( ulColor, urColor ) ||
+        	(thresholdSqr == 0 ||
+			 areTooDifferent( ulColor, urColor ) ||
     		 areTooDifferent( ulColor, llColor ) ||
     		 areTooDifferent( ulColor, lrColor ) ||
     		 areTooDifferent( urColor, llColor ) ||
