@@ -164,8 +164,6 @@ public class RenderingTask implements Callable<Boolean>
     }
 
 	private void renderWithAntiAliasing(Color3f[] internalColorBuffer, PixelStep step) {
-		// first sample canvas at pixel corners and cast primary rays
-
 		for( int y = 0; y < step.height; ++y )
 		{
 			ColumnSubstitutorPair csp = cspProvider.get(step.v);
@@ -175,17 +173,7 @@ public class RenderingTask implements Callable<Boolean>
 		        if( Thread.currentThread().isInterrupted() )
 		            throw new RenderingInterruptedException();
 		        
-		        // trace rays corresponding to (u,v)-coordinates on viewing plane
-		        internalColorBuffer[ step.internalBufferIndex ] = tracePolynomial( csp.scs, csp.gcs, step.u, step.v );
-		        if( x > 0 && y > 0 )
-		        {
-		            Color3f urColor = internalColorBuffer[ step.internalBufferIndex ];
-		            Color3f ulColor = internalColorBuffer[ step.internalBufferIndex - 1 ];
-		            Color3f lrColor = internalColorBuffer[ step.internalBufferIndex - step.width ];
-		            Color3f llColor = internalColorBuffer[ step.internalBufferIndex - step.width - 1 ];
-
-		            dcsd.colorBuffer[ step.colorBufferIndex ] = antiAliasPixel( dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor ).get().getRGB();
-		        }
+		        renderPixelWithAntiAliasing(x, y, step, csp, internalColorBuffer);
 		        step.stepU();
 		    }
 		    step.stepV();
@@ -204,11 +192,29 @@ public class RenderingTask implements Callable<Boolean>
 		        if( Thread.currentThread().isInterrupted() )
 		            throw new RenderingInterruptedException();
 
-		        dcsd.colorBuffer[ step.colorBufferIndex ] = tracePolynomial(csp.scs, csp.gcs, step.u, step.v ).get().getRGB();
+		        renderPixelWithoutAntiAliasing(step, csp);
 			    step.stepU();
 		    }
 			step.stepV();
 		}
+	}
+
+	private void renderPixelWithAntiAliasing(int x, int y, PixelStep step, ColumnSubstitutorPair csp, Color3f[] internalColorBuffer) {
+		internalColorBuffer[ step.internalBufferIndex ] = tracePolynomial( csp.scs, csp.gcs, step.u, step.v );
+		if( x > 0 && y > 0 )
+		{
+		    Color3f urColor = internalColorBuffer[ step.internalBufferIndex ];
+		    Color3f ulColor = internalColorBuffer[ step.internalBufferIndex - 1 ];
+		    Color3f lrColor = internalColorBuffer[ step.internalBufferIndex - step.width ];
+		    Color3f llColor = internalColorBuffer[ step.internalBufferIndex - step.width - 1 ];
+
+		    dcsd.colorBuffer[ step.colorBufferIndex ] = antiAliasPixel( dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor ).get().getRGB();
+		}
+	}
+
+
+	private void renderPixelWithoutAntiAliasing(PixelStep step, ColumnSubstitutorPair csp) {
+		dcsd.colorBuffer[ step.colorBufferIndex ] = tracePolynomial(csp.scs, csp.gcs, step.u, step.v ).get().getRGB();
 	}
 	
     private Color3f antiAliasPixel( AntiAliasingPattern aap, Color3f ulColor, Color3f urColor, Color3f llColor, Color3f lrColor )
