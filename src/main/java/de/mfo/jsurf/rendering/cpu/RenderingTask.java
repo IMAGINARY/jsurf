@@ -44,19 +44,29 @@ public class RenderingTask implements Callable<Boolean>
     }
 
     public Boolean call() {
-		Color3f[] colorBuffer = bufferPool.getBuffer(step.width * step.height);
+		Color3f[] colorBuffer = null;
         try {
-            render(colorBuffer, step);
+        	if (useAliasing()) {
+        		colorBuffer = bufferPool.getBuffer(step.width * step.height);
+        		renderWithAliasing(colorBuffer, step);
+        	} else {
+        		renderWithoutAliasing(step);
+        	}
             return true;
         } catch( RenderingInterruptedException rie ) { // rendering interrupted .. that's ok
         } catch( Throwable t ) {
             t.printStackTrace();
         } finally {
-        	bufferPool.releaseBuffer(colorBuffer);
+        	if (colorBuffer != null)
+        		bufferPool.releaseBuffer(colorBuffer);
         }
         return false;
     }
 
+    private boolean useAliasing() {
+    	return dcsd.antiAliasingPattern != AntiAliasingPattern.OG_1x1;
+    }
+    
     private class ColumnSubstitutorPair
     {
         ColumnSubstitutorPair( ColumnSubstitutor scs, ColumnSubstitutorForGradient gcs )
@@ -67,18 +77,6 @@ public class RenderingTask implements Callable<Boolean>
 
         ColumnSubstitutor scs;
         ColumnSubstitutorForGradient gcs;
-    }
-
-    protected void render(Color3f[] colorBuffer, PixelStep step) throws RenderingInterruptedException {
-        switch( dcsd.antiAliasingPattern ) {
-            case OG_1x1: {
-                renderWithoutAliasing(step);
-                break;
-            }
-    		// all other antialiasing modes
-            default:
-                renderWithAliasing(colorBuffer, step);
-        }
     }
 
     /**
