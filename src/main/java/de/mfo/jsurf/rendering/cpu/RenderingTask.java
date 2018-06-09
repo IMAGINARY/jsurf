@@ -28,11 +28,11 @@ public class RenderingTask implements Callable<Boolean>
     /**
      * Holds information needed for stepping through the pixels in the image
      */
-	private static class PixelStep {
+	static class PixelStep {
 		private final double u_start;
 		private final double v_start;
-		private final double u_incr;
-		private final double v_incr;
+		final double u_incr;
+		final double v_incr;
 		
 		public final int width;
 		public final int height;
@@ -88,7 +88,7 @@ public class RenderingTask implements Callable<Boolean>
 		}
 	}
 
-    private static class ColumnSubstitutorPair
+    static class ColumnSubstitutorPair
     {
         public final ColumnSubstitutor scs;
         public final ColumnSubstitutorForGradient gcs;
@@ -100,7 +100,7 @@ public class RenderingTask implements Callable<Boolean>
         }
     }
 
-    private static class ColumnSubstitutorPairProvider {
+    static class ColumnSubstitutorPairProvider {
     	private final HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm;
         private final RowSubstitutor surfaceRowSubstitutor;
         private final RowSubstitutorForGradient gradientRowSubstitutor;
@@ -121,169 +121,7 @@ public class RenderingTask implements Callable<Boolean>
     	}
     }
     
-    private abstract class PixelRenderStrategy {
-    	private final PolynomialTracer polyTracer;
-		private final RayCreator rayCreator;
-		private final Shader frontShader;
-		private final Shader backShader;
-		private final Color3f backgroundColor;
-
-		protected final int[] colorBuffer;
-
-		public PixelRenderStrategy(DrawcallStaticData dcsd, PolynomialTracer polyTracer) {
-			this.polyTracer = polyTracer;
-	        this.frontShader = new Shader(dcsd.frontAmbientColor, dcsd.lightSources, dcsd.frontLightProducts);
-	        this.backShader = new Shader(dcsd.backAmbientColor, dcsd.lightSources, dcsd.backLightProducts);
-			this.backgroundColor = dcsd.backgroundColor;
-			this.rayCreator = dcsd.rayCreator;
-			this.colorBuffer = dcsd.colorBuffer;
-    	}
-    	
-    	public abstract void renderPixel(int x, int y, PixelStep step, ColumnSubstitutorPair csp);
-    	
-        protected Color3f tracePolynomial( ColumnSubstitutor scs, ColumnSubstitutorForGradient gcs, double u, double v )
-        {
-        	double hit = polyTracer.findClosestHit(scs, gcs, u, v);
-
-        	if (Double.isNaN(hit))
-                return backgroundColor;
-
-            UnivariatePolynomialVector3d gradientPolys = gcs.setU( u );
-    	    Vector3d n_surfaceSpace = gradientPolys.setT( hit );
-    	    Vector3d n_cameraSpace = rayCreator.surfaceSpaceNormalToCameraSpaceNormal( n_surfaceSpace );
-    	
-            Ray ray = rayCreator.createCameraSpaceRay( u, v );
-    	    return shade( ray, hit, n_cameraSpace );
-        }
-
-        /**
-         * Calculates the shading in camera space
-         */
-        protected Color3f shade( Ray ray, double hit, Vector3d cameraSpaceNormal )
-        {
-            // normalize only if point is not singular
-            float nLength = (float) cameraSpaceNormal.length();
-            if( nLength != 0.0f )
-                cameraSpaceNormal.scale( 1.0f / nLength );
-
-            Vector3d view = new Vector3d(-ray.d.x, -ray.d.y, -ray.d.z);
-            // TODO: not normalizing the view does not seem to affect the rendered result, maybe it can be avoided
-            view.normalize();
-
-            Shader shader = frontShader;
-            if( cameraSpaceNormal.dot( view ) <= 0.0f ) {
-            	shader = backShader;
-                cameraSpaceNormal.negate();
-            }
-
-            return shader.shade(ray.at(hit), view, cameraSpaceNormal);
-        }
-    }
-    
-    private class AntiAliasedPixelRenderer extends PixelRenderStrategy {
-    	private final Color3f[] internalColorBuffer;
-    	private final float thresholdSqr;
-    	private final AntiAliasingPattern aap;
-    	private final ColumnSubstitutorPairProvider cspProvider;
-
-		public AntiAliasedPixelRenderer(DrawcallStaticData dcsd, Color3f[] internalColorBuffer, PolynomialTracer polyTracer, ColumnSubstitutorPairProvider cspProvider) {
-			super(dcsd, polyTracer);
-			this.internalColorBuffer = internalColorBuffer;
-			this.thresholdSqr = dcsd.antiAliasingThreshold * dcsd.antiAliasingThreshold;
-			this.aap = dcsd.antiAliasingPattern;
-			this.cspProvider = cspProvider;
-		}
-    	
-		@Override
-		public void renderPixel(int x, int y, PixelStep step, ColumnSubstitutorPair csp) {
-			internalColorBuffer[ step.internalBufferIndex ] = tracePolynomial( csp.scs, csp.gcs, step.u, step.v );
-			if( x > 0 && y > 0 )
-			{
-			    Color3f urColor = internalColorBuffer[ step.internalBufferIndex ];
-			    Color3f ulColor = internalColorBuffer[ step.internalBufferIndex - 1 ];
-			    Color3f lrColor = internalColorBuffer[ step.internalBufferIndex - step.width ];
-			    Color3f llColor = internalColorBuffer[ step.internalBufferIndex - step.width - 1 ];
-
-			    colorBuffer[ step.colorBufferIndex ] = antiAliasPixel( step, ulColor, urColor, llColor, lrColor ).get().getRGB();
-			}
-		}
-
-	    private Color3f antiAliasPixel( PixelStep step, Color3f ulColor, Color3f urColor, Color3f llColor, Color3f lrColor )
-	    {
-	        // first average pixel-corner colors
-	        Color3f finalColor;
-
-	        // adaptive supersampling
-	        if( aap != AntiAliasingPattern.OG_2x2 && ( colorDiffSqr( ulColor, urColor ) >= thresholdSqr ||
-	            colorDiffSqr( ulColor, llColor ) >= thresholdSqr ||
-	            colorDiffSqr( ulColor, lrColor ) >= thresholdSqr ||
-	            colorDiffSqr( urColor, llColor ) >= thresholdSqr ||
-	            colorDiffSqr( urColor, lrColor ) >= thresholdSqr ||
-	            colorDiffSqr( llColor, lrColor ) >= thresholdSqr ) )
-	        {
-	            // anti-alias pixel with advanced sampling pattern
-	            finalColor = new Color3f();
-	            for( AntiAliasingPattern.SamplingPoint sp : aap )
-	            {
-	                if( Thread.currentThread().isInterrupted() )
-	                    throw new RenderingInterruptedException();
-
-	                Color3f ss_color;
-	                if( sp.getU() == 0.0 && sp.getV() == 0.0 )
-	                    ss_color = llColor;
-	                else if( sp.getU() == 0.0 && sp.getV() == 1.0 )
-	                    ss_color = ulColor;
-	                else if( sp.getU() == 1.0 && sp.getV() == 1.0 )
-	                    ss_color = urColor;
-	                else if( sp.getU() == 1.0 && sp.getV() == 0.0 )
-	                    ss_color = lrColor;
-	                else
-	                {
-	                    // color of this sample point is not known -> calculate
-	                    double v = step.vOld + sp.getV() * step.v_incr;
-	                    double u = step.uOld + sp.getU() * step.u_incr;
-	                    ColumnSubstitutorPair csp = cspProvider.get( v );
-	                    ss_color = tracePolynomial( csp.scs, csp.gcs, u, v );
-	                }
-	                finalColor.scaleAdd( sp.getWeight(), ss_color, finalColor );
-	                
-	                if( false )
-	                    return new Color3f( 0, 0, 0 ); // paint pixels, that are supposed to be anti-aliased in black
-	            }
-	        }
-	        else
-	        {
-	            finalColor = new Color3f( ulColor );
-	            finalColor.add( urColor );
-	            finalColor.add( llColor );
-	            finalColor.add( lrColor );
-	            finalColor.scale( 0.25f );
-	        }
-
-	        // clamp color, because floating point operations may yield values outside [0,1]
-	        finalColor.clamp( 0f, 1f );
-	        return finalColor;
-	    }
-
-	    private float colorDiffSqr( Color3f c1, Color3f c2 )
-	    {
-	        Vector3f diff = new Vector3f( c1 );
-	        diff.sub( c2 );
-	        return diff.dot( diff );
-	    }
-    }
-
-    private class BasicPixelRenderer extends PixelRenderStrategy {
-    	public BasicPixelRenderer(DrawcallStaticData dcsd, PolynomialTracer polyTracer) {
-    		super(dcsd, polyTracer);
-		}
-
-		@Override public void renderPixel(int x, int y, PixelStep step, ColumnSubstitutorPair csp) {
-			colorBuffer[ step.colorBufferIndex ] = tracePolynomial(csp.scs, csp.gcs, step.u, step.v ).get().getRGB();
-		}
-    }
-    
-	static ColorBufferPool bufferPool = new ColorBufferPool();
+    static ColorBufferPool bufferPool = new ColorBufferPool();
 	
     // initialized by the constructor
     private final DrawcallStaticData dcsd;
