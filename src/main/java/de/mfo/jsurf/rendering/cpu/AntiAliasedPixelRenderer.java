@@ -54,23 +54,23 @@ class AntiAliasedPixelRenderer extends PixelRenderStrategy {
                     throw new RenderingInterruptedException();
 
                 Color3f ss_color;
-                if( sp.getU() == 0.0 && sp.getV() == 0.0 )
+                if( sp.u == 0.0 && sp.v == 0.0 )
                     ss_color = llColor;
-                else if( sp.getU() == 0.0 && sp.getV() == 1.0 )
+                else if( sp.u == 0.0 && sp.v == 1.0 )
                     ss_color = ulColor;
-                else if( sp.getU() == 1.0 && sp.getV() == 1.0 )
+                else if( sp.u == 1.0 && sp.v == 1.0 )
                     ss_color = urColor;
-                else if( sp.getU() == 1.0 && sp.getV() == 0.0 )
+                else if( sp.u == 1.0 && sp.v == 0.0 )
                     ss_color = lrColor;
                 else
                 {
                     // color of this sample point is not known -> calculate
-                    double v = step.vOld + sp.getV() * step.v_incr;
-                    double u = step.uOld + sp.getU() * step.u_incr;
+                    double v = step.vOld + sp.v * step.v_incr;
+                    double u = step.uOld + sp.u * step.u_incr;
                     ColumnSubstitutorPair csp = cspProvider.get( v );
                     ss_color = tracePolynomial( csp.scs, csp.gcs, u, v );
                 }
-                finalColor.scaleAdd( sp.getWeight(), ss_color, finalColor );
+                finalColor.scaleAdd( sp.weight, ss_color, finalColor );
             }
         }
         else

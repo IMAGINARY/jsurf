@@ -36,7 +36,9 @@ public enum AntiAliasingPattern implements Iterable< AntiAliasingPattern.Samplin
 
     public static class SamplingPoint
     {
-        private float u, v, weight;
+        public final float u;
+        public final float v;
+        public final float weight;
 
         private SamplingPoint( float u, float v, float weight )
         {
@@ -44,10 +46,6 @@ public enum AntiAliasingPattern implements Iterable< AntiAliasingPattern.Samplin
             this.v = v;
             this.weight = weight;
         }
-
-        public float getU() { return u;}
-        public float getV() { return v; }
-        public float getWeight() { return weight; }
     }
 
     private class SamplingPointIterator implements Iterator< SamplingPoint >
