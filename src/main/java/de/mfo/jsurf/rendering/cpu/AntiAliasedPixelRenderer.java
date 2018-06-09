@@ -71,9 +71,6 @@ class AntiAliasedPixelRenderer extends PixelRenderStrategy {
                     ss_color = tracePolynomial( csp.scs, csp.gcs, u, v );
                 }
                 finalColor.scaleAdd( sp.getWeight(), ss_color, finalColor );
-                
-                if( false )
-                    return new Color3f( 0, 0, 0 ); // paint pixels, that are supposed to be anti-aliased in black
             }
         }
         else
