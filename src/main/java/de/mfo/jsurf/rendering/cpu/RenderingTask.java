@@ -42,6 +42,7 @@ public class RenderingTask implements Callable<Boolean>
 		public double vOld;
 		public double uOld;
 
+		public int internalBufferIndex;
 		public int colorBufferIndex;
 		private final int colorBufferVStep;
 		
@@ -74,6 +75,7 @@ public class RenderingTask implements Callable<Boolean>
 	        uOld = u;
 	        u += u_incr;
 	        colorBufferIndex++;
+	        internalBufferIndex++;
 		}
 		
 		public void stepV() {
@@ -164,7 +166,6 @@ public class RenderingTask implements Callable<Boolean>
 	private void renderWithAntiAliasing(Color3f[] internalColorBuffer, PixelStep step) {
 		// first sample canvas at pixel corners and cast primary rays
 
-	    int internalBufferIndex = 0;
 		for( int y = 0; y < step.height; ++y )
 		{
 			ColumnSubstitutorPair csp = cspProvider.get(step.v);
@@ -175,18 +176,17 @@ public class RenderingTask implements Callable<Boolean>
 		            throw new RenderingInterruptedException();
 		        
 		        // trace rays corresponding to (u,v)-coordinates on viewing plane
-		        internalColorBuffer[ internalBufferIndex ] = tracePolynomial( csp.scs, csp.gcs, step.u, step.v );
+		        internalColorBuffer[ step.internalBufferIndex ] = tracePolynomial( csp.scs, csp.gcs, step.u, step.v );
 		        if( x > 0 && y > 0 )
 		        {
-		            Color3f urColor = internalColorBuffer[ internalBufferIndex ];
-		            Color3f ulColor = internalColorBuffer[ internalBufferIndex - 1 ];
-		            Color3f lrColor = internalColorBuffer[ internalBufferIndex - step.width ];
-		            Color3f llColor = internalColorBuffer[ internalBufferIndex - step.width - 1 ];
+		            Color3f urColor = internalColorBuffer[ step.internalBufferIndex ];
+		            Color3f ulColor = internalColorBuffer[ step.internalBufferIndex - 1 ];
+		            Color3f lrColor = internalColorBuffer[ step.internalBufferIndex - step.width ];
+		            Color3f llColor = internalColorBuffer[ step.internalBufferIndex - step.width - 1 ];
 
 		            dcsd.colorBuffer[ step.colorBufferIndex ] = antiAliasPixel( dcsd.antiAliasingPattern, ulColor, urColor, llColor, lrColor ).get().getRGB();
 		        }
 		        step.stepU();
-		        internalBufferIndex++;
 		    }
 		    step.stepV();
 		}
