@@ -86,16 +86,37 @@ public class RenderingTask implements Callable<Boolean>
 		}
 	}
 
-    private class ColumnSubstitutorPair
+    private static class ColumnSubstitutorPair
     {
+        public final ColumnSubstitutor scs;
+        public final ColumnSubstitutorForGradient gcs;
+        
         ColumnSubstitutorPair( ColumnSubstitutor scs, ColumnSubstitutorForGradient gcs )
         {
             this.scs = scs;
             this.gcs = gcs;
         }
+    }
 
-        ColumnSubstitutor scs;
-        ColumnSubstitutorForGradient gcs;
+    private static class ColumnSubstitutorPairProvider {
+    	private final HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm;
+        private final RowSubstitutor surfaceRowSubstitutor;
+        private final RowSubstitutorForGradient gradientRowSubstitutor;
+
+    	public ColumnSubstitutorPairProvider(DrawcallStaticData dcsd) {
+            this.csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
+            this.surfaceRowSubstitutor = dcsd.surfaceRowSubstitutor;
+            this.gradientRowSubstitutor = dcsd.gradientRowSubstitutor;
+    	}
+
+    	public ColumnSubstitutorPair get(double v) {
+    		ColumnSubstitutorPair csp = csp_hm.get(v);
+    		if (csp == null) {
+    			csp = new ColumnSubstitutorPair(surfaceRowSubstitutor.setV( v ), gradientRowSubstitutor.setV( v ));
+    			csp_hm.put(v, csp);
+    		}
+    		return csp;
+    	}
     }
     
 	static ColorBufferPool bufferPool = new ColorBufferPool();
@@ -105,7 +126,7 @@ public class RenderingTask implements Callable<Boolean>
     private final Shader frontShader;
     private final Shader backShader;
     private final PixelStep step;
-	private final HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm;
+    private final ColumnSubstitutorPairProvider cspProvider;
 
     public RenderingTask( DrawcallStaticData dcsd, int xStart, int yStart, int xEnd, int yEnd )
     {
@@ -113,7 +134,7 @@ public class RenderingTask implements Callable<Boolean>
 		this.step = new PixelStep(dcsd, xStart, yStart, xEnd - xStart + 2, yEnd - yStart + 2);
         this.frontShader = new Shader(dcsd.frontAmbientColor, dcsd.lightSources, dcsd.frontLightProducts);
         this.backShader = new Shader(dcsd.backAmbientColor, dcsd.lightSources, dcsd.backLightProducts);
-        this.csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
+        this.cspProvider = new ColumnSubstitutorPairProvider(dcsd);
     }
 
     public Boolean call() {
@@ -146,10 +167,7 @@ public class RenderingTask implements Callable<Boolean>
 	    int internalBufferIndex = 0;
 		for( int y = 0; y < step.height; ++y )
 		{
-			ColumnSubstitutor scs = dcsd.surfaceRowSubstitutor.setV( step.v );
-			ColumnSubstitutorForGradient gcs = dcsd.gradientRowSubstitutor.setV( step.v );
-		    
-		    csp_hm.put( step.v, new ColumnSubstitutorPair( scs, gcs ) );
+			ColumnSubstitutorPair csp = cspProvider.get(step.v);
 
 		    for( int x = 0; x < step.width; ++x )
 		    {
@@ -157,7 +175,7 @@ public class RenderingTask implements Callable<Boolean>
 		            throw new RenderingInterruptedException();
 		        
 		        // trace rays corresponding to (u,v)-coordinates on viewing plane
-		        internalColorBuffer[ internalBufferIndex ] = tracePolynomial( scs, gcs, step.u, step.v );
+		        internalColorBuffer[ internalBufferIndex ] = tracePolynomial( csp.scs, csp.gcs, step.u, step.v );
 		        if( x > 0 && y > 0 )
 		        {
 		            Color3f urColor = internalColorBuffer[ internalBufferIndex ];
@@ -179,15 +197,14 @@ public class RenderingTask implements Callable<Boolean>
 
 		for( int y = 0; y < step.height; y++ )
 		{
-		    ColumnSubstitutor scs = dcsd.surfaceRowSubstitutor.setV( step.v );
-		    ColumnSubstitutorForGradient gcs = dcsd.gradientRowSubstitutor.setV( step.v );
-         
+			ColumnSubstitutorPair csp = cspProvider.get(step.v);
+			
 		    for( int x = 0; x < step.width; x++ )
 		    {
 		        if( Thread.currentThread().isInterrupted() )
 		            throw new RenderingInterruptedException();
 
-		        dcsd.colorBuffer[ step.colorBufferIndex ] = tracePolynomial( scs, gcs, step.u, step.v ).get().getRGB();
+		        dcsd.colorBuffer[ step.colorBufferIndex ] = tracePolynomial(csp.scs, csp.gcs, step.u, step.v ).get().getRGB();
 			    step.stepU();
 		    }
 			step.stepV();
@@ -229,12 +246,7 @@ public class RenderingTask implements Callable<Boolean>
                     // color of this sample point is not known -> calculate
                     double v = step.vOld + sp.getV() * step.v_incr;
                     double u = step.uOld + sp.getU() * step.u_incr;
-                    ColumnSubstitutorPair csp = csp_hm.get( v );
-                    if( csp == null )
-                    {
-                        csp = new ColumnSubstitutorPair( dcsd.surfaceRowSubstitutor.setV( v ), dcsd.gradientRowSubstitutor.setV( v ) );
-                        csp_hm.put( v, csp );
-                    }
+                    ColumnSubstitutorPair csp = cspProvider.get( v );
                     ss_color = tracePolynomial( csp.scs, csp.gcs, u, v );
                 }
                 finalColor.scaleAdd( sp.getWeight(), ss_color, finalColor );
