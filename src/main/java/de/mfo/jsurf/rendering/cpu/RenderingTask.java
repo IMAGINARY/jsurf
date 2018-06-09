@@ -140,11 +140,11 @@ public class RenderingTask implements Callable<Boolean>
     public Boolean call() {
 		Color3f[] colorBuffer = null;
         try {
-        	if (useAliasing()) {
+        	if (useAntiAliasing()) {
         		colorBuffer = bufferPool.getBuffer(step.width * step.height);
-        		renderWithAliasing(colorBuffer, step);
+        		renderWithAntiAliasing(colorBuffer, step);
         	} else {
-        		renderWithoutAliasing(step);
+        		renderWithoutAntiAliasing(step);
         	}
             return true;
         } catch( RenderingInterruptedException rie ) { // rendering interrupted .. that's ok
@@ -157,11 +157,11 @@ public class RenderingTask implements Callable<Boolean>
         return false;
     }
 
-    private boolean useAliasing() {
+    private boolean useAntiAliasing() {
     	return dcsd.antiAliasingPattern != AntiAliasingPattern.OG_1x1;
     }
 
-	private void renderWithAliasing(Color3f[] internalColorBuffer, PixelStep step) {
+	private void renderWithAntiAliasing(Color3f[] internalColorBuffer, PixelStep step) {
 		// first sample canvas at pixel corners and cast primary rays
 
 	    int internalBufferIndex = 0;
@@ -193,7 +193,7 @@ public class RenderingTask implements Callable<Boolean>
 	}
 
 	/** no antialising -> sample pixel center */
-	private void renderWithoutAliasing(PixelStep step) {
+	private void renderWithoutAntiAliasing(PixelStep step) {
 
 		for( int y = 0; y < step.height; y++ )
 		{
