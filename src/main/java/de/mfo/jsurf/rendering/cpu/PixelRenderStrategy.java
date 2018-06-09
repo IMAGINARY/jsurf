@@ -6,7 +6,6 @@ import javax.vecmath.Vector3d;
 import de.mfo.jsurf.algebra.ColumnSubstitutor;
 import de.mfo.jsurf.algebra.ColumnSubstitutorForGradient;
 import de.mfo.jsurf.algebra.UnivariatePolynomialVector3d;
-import de.mfo.jsurf.rendering.cpu.RenderingTask.PixelStep;
 
 public abstract class PixelRenderStrategy {
 	private final PolynomialTracer polyTracer;

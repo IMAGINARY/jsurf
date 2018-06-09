@@ -1,7 +1,5 @@
 package de.mfo.jsurf.rendering.cpu;
 
-import de.mfo.jsurf.rendering.cpu.RenderingTask.PixelStep;
-
 class BasicPixelRenderer extends PixelRenderStrategy {
 	public BasicPixelRenderer(DrawcallStaticData dcsd, PolynomialTracer polyTracer) {
 		super(dcsd, polyTracer);

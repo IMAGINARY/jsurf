@@ -4,7 +4,6 @@ import javax.vecmath.Color3f;
 import javax.vecmath.Vector3f;
 
 import de.mfo.jsurf.rendering.RenderingInterruptedException;
-import de.mfo.jsurf.rendering.cpu.RenderingTask.PixelStep;
 
 class AntiAliasedPixelRenderer extends PixelRenderStrategy {
 	private final Color3f[] internalColorBuffer;
