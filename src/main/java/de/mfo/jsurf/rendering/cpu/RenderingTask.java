@@ -25,63 +25,8 @@ import java.util.*;
 
 public class RenderingTask implements Callable<Boolean>
 {
-	static ColorBufferPool bufferPool = new ColorBufferPool();
-	
-    // initialized by the constructor
-    private final DrawcallStaticData dcsd;
-    private final Shader frontShader;
-    private final Shader backShader;
-    private final PixelStep step;
-	private final HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm;
-
-    public RenderingTask( DrawcallStaticData dcsd, int xStart, int yStart, int xEnd, int yEnd )
-    {
-        this.dcsd = dcsd;
-		this.step = new PixelStep(dcsd, xStart, yStart, xEnd - xStart + 2, yEnd - yStart + 2);
-        this.frontShader = new Shader(dcsd.frontAmbientColor, dcsd.lightSources, dcsd.frontLightProducts);
-        this.backShader = new Shader(dcsd.backAmbientColor, dcsd.lightSources, dcsd.backLightProducts);
-        this.csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
-    }
-
-    public Boolean call() {
-		Color3f[] colorBuffer = null;
-        try {
-        	if (useAliasing()) {
-        		colorBuffer = bufferPool.getBuffer(step.width * step.height);
-        		renderWithAliasing(colorBuffer, step);
-        	} else {
-        		renderWithoutAliasing(step);
-        	}
-            return true;
-        } catch( RenderingInterruptedException rie ) { // rendering interrupted .. that's ok
-        } catch( Throwable t ) {
-            t.printStackTrace();
-        } finally {
-        	if (colorBuffer != null)
-        		bufferPool.releaseBuffer(colorBuffer);
-        }
-        return false;
-    }
-
-    private boolean useAliasing() {
-    	return dcsd.antiAliasingPattern != AntiAliasingPattern.OG_1x1;
-    }
-    
-    private class ColumnSubstitutorPair
-    {
-        ColumnSubstitutorPair( ColumnSubstitutor scs, ColumnSubstitutorForGradient gcs )
-        {
-            this.scs = scs;
-            this.gcs = gcs;
-        }
-
-        ColumnSubstitutor scs;
-        ColumnSubstitutorForGradient gcs;
-    }
-
     /**
      * Holds information needed for stepping through the pixels in the image
-     *
      */
 	private static class PixelStep {
 		private final double u_start;
@@ -140,6 +85,60 @@ public class RenderingTask implements Callable<Boolean>
 			colorBufferIndex += colorBufferVStep;
 		}
 	}
+
+    private class ColumnSubstitutorPair
+    {
+        ColumnSubstitutorPair( ColumnSubstitutor scs, ColumnSubstitutorForGradient gcs )
+        {
+            this.scs = scs;
+            this.gcs = gcs;
+        }
+
+        ColumnSubstitutor scs;
+        ColumnSubstitutorForGradient gcs;
+    }
+    
+	static ColorBufferPool bufferPool = new ColorBufferPool();
+	
+    // initialized by the constructor
+    private final DrawcallStaticData dcsd;
+    private final Shader frontShader;
+    private final Shader backShader;
+    private final PixelStep step;
+	private final HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm;
+
+    public RenderingTask( DrawcallStaticData dcsd, int xStart, int yStart, int xEnd, int yEnd )
+    {
+        this.dcsd = dcsd;
+		this.step = new PixelStep(dcsd, xStart, yStart, xEnd - xStart + 2, yEnd - yStart + 2);
+        this.frontShader = new Shader(dcsd.frontAmbientColor, dcsd.lightSources, dcsd.frontLightProducts);
+        this.backShader = new Shader(dcsd.backAmbientColor, dcsd.lightSources, dcsd.backLightProducts);
+        this.csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
+    }
+
+    public Boolean call() {
+		Color3f[] colorBuffer = null;
+        try {
+        	if (useAliasing()) {
+        		colorBuffer = bufferPool.getBuffer(step.width * step.height);
+        		renderWithAliasing(colorBuffer, step);
+        	} else {
+        		renderWithoutAliasing(step);
+        	}
+            return true;
+        } catch( RenderingInterruptedException rie ) { // rendering interrupted .. that's ok
+        } catch( Throwable t ) {
+            t.printStackTrace();
+        } finally {
+        	if (colorBuffer != null)
+        		bufferPool.releaseBuffer(colorBuffer);
+        }
+        return false;
+    }
+
+    private boolean useAliasing() {
+    	return dcsd.antiAliasingPattern != AntiAliasingPattern.OG_1x1;
+    }
 
 	private void renderWithAliasing(Color3f[] internalColorBuffer, PixelStep step) {
 		// first sample canvas at pixel corners and cast primary rays
