@@ -1,27 +1,30 @@
 package de.mfo.jsurf.rendering.cpu;
 
-import java.util.HashMap;
-
 import de.mfo.jsurf.algebra.RowSubstitutor;
 import de.mfo.jsurf.algebra.RowSubstitutorForGradient;
 
 class ColumnSubstitutorPairProvider {
-	private final HashMap< java.lang.Double, ColumnSubstitutorPair > csp_hm;
     private final RowSubstitutor surfaceRowSubstitutor;
     private final RowSubstitutorForGradient gradientRowSubstitutor;
+    
+    private final ColumnSubstitutorPair[] csps;
+    private final double vMult;
+    private final double vInc;
 
-	public ColumnSubstitutorPairProvider(DrawcallStaticData dcsd) {
-        this.csp_hm = new HashMap< java.lang.Double, ColumnSubstitutorPair >();
+	public ColumnSubstitutorPairProvider(DrawcallStaticData dcsd, PixelStep step) {
         this.surfaceRowSubstitutor = dcsd.surfaceRowSubstitutor;
         this.gradientRowSubstitutor = dcsd.gradientRowSubstitutor;
+        this.vInc = -step.v_start;
+        this.vMult = (double)dcsd.antiAliasingPattern.vSteps / step.v_incr;
+        this.csps = new ColumnSubstitutorPair[(dcsd.antiAliasingPattern.vSteps + 1) * (step.height + 1)];
 	}
 
 	public ColumnSubstitutorPair get(double v) {
-		ColumnSubstitutorPair csp = csp_hm.get(v);
-		if (csp == null) {
-			csp = new ColumnSubstitutorPair(surfaceRowSubstitutor.setV( v ), gradientRowSubstitutor.setV( v ));
-			csp_hm.put(v, csp);
-		}
-		return csp;
+		int index = (int)((v + vInc) * vMult);
+	
+		if (csps[index] == null)
+			csps[index] = new ColumnSubstitutorPair(surfaceRowSubstitutor.setV( v ), gradientRowSubstitutor.setV( v ));
+		
+		return csps[index];
 	}
 }

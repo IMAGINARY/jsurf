@@ -7,7 +7,7 @@ import javax.vecmath.Vector2d;
  */
 class PixelStep {
 	private final double u_start;
-	private final double v_start;
+	final double v_start;
 	final double u_incr;
 	final double v_incr;
 	

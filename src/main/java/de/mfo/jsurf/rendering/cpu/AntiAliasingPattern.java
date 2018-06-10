@@ -21,18 +21,19 @@ import java.util.NoSuchElementException;
 
 public enum AntiAliasingPattern implements Iterable< AntiAliasingPattern.SamplingPoint >
 {
-    OG_1x1( getOGSSPattern( 1 ) ),
-    OG_2x2( getOGSSPattern( 2 ) ),
-    OG_3x3( getOGSSPattern( 3 ) ),
-    OG_4x4( getOGSSPattern( 4 ) ),
-    OG_5x5( getOGSSPattern( 5 ) ),
-    OG_6x6( getOGSSPattern( 6 ) ),
-    OG_7x7( getOGSSPattern( 7 ) ),
-    OG_8x8( getOGSSPattern( 8 ) ),
-    RG_2x2( getRGSSPattern() ),
-    QUINCUNX( getQuincunxPattern() );
+    OG_1x1( getOGSSPattern( 1 ), 1 ),
+    OG_2x2( getOGSSPattern( 2 ), 2 ),
+    OG_3x3( getOGSSPattern( 3 ), 3 ),
+    OG_4x4( getOGSSPattern( 4 ), 4 ),
+    OG_5x5( getOGSSPattern( 5 ), 5 ),
+    OG_6x6( getOGSSPattern( 6 ), 6 ),
+    OG_7x7( getOGSSPattern( 7 ), 7 ),
+    OG_8x8( getOGSSPattern( 8 ), 8 ),
+    RG_2x2( getRGSSPattern(), 2 ),
+    QUINCUNX( getQuincunxPattern(), 3 );
 
     private final SamplingPoint[] points;
+    public final int vSteps;
     
     public final float cornerWeight;
 
@@ -88,9 +89,10 @@ public enum AntiAliasingPattern implements Iterable< AntiAliasingPattern.Samplin
         }
     }
 
-    private AntiAliasingPattern( SamplingPoint[] points ) {
+    private AntiAliasingPattern( SamplingPoint[] points, int vSteps ) {
     	this.points = points;
     	this.cornerWeight = findFirstCorner().weight;
+    	this.vSteps = vSteps;
 	}
     
     SamplingPoint findFirstCorner() {
