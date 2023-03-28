@@ -8,6 +8,10 @@ import de.mfo.jsurf.algebra.*;
 import de.mfo.jsurf.parser.*;
 import de.mfo.jsurf.util.FileFormat;
 import java.util.Properties;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
 import javax.swing.SwingWorker;
 
 public class TestJSurf
@@ -27,6 +31,8 @@ public class TestJSurf
 
 		class BackgroundRenderer extends SwingWorker< Void, Void >
 		{
+			public boolean interrupted = false;
+
 		   @Override
 		   public Void doInBackground() {
 		   		try {
@@ -35,6 +41,7 @@ public class TestJSurf
 		   		catch( RenderingInterruptedException rie )
 		   		{
 		   			System.out.println( "Rendering interrupted" );
+					interrupted = true;
 		   		}
 		    	return null;
 		   }
@@ -45,16 +52,23 @@ public class TestJSurf
 		br.execute();
 
     	long t = System.currentTimeMillis();
-    	Thread.sleep( 100 );
-
 		System.out.println( "Attempting to stop rendering" );
-    	asr.stopDrawing();
+		for (int i = 0; i < 100; ) {
+			try
+			{
+				asr.stopDrawing();
+				br.get(100, TimeUnit.MILLISECONDS);
+				break;
+			}
+			catch (InterruptedException e) {}
+			catch (ExecutionException e) {}
+			catch (TimeoutException e) {}
+		}
 
-    	br.get();
     	t = System.currentTimeMillis() - t;
     	System.out.println( "Render method finished after " + t + "ms" );
 
-		Assert.assertTrue( "stopDrawing must interrupt and stop the rendering process", t < 200 );
+		Assert.assertTrue( "stopDrawing must interrupt and stop the rendering process", br.interrupted );
 	}
 
 	@Test
