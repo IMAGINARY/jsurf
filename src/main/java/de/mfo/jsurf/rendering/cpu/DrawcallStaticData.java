@@ -22,7 +22,7 @@ import de.mfo.jsurf.rendering.cpu.clipping.*;
 
 import javax.vecmath.*;
 
-class DrawcallStaticData
+public class DrawcallStaticData
 {
     int[] colorBuffer;
     int width;
